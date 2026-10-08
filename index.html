@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hyundai Motor — Digital Twin vs IoT Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#020608;--surface:#060f18;--panel:#09162a;--card:#0b1c30;
+  --border:#0f2236;--border2:#163044;
+  --accent:#00c8ff;--accent2:#00ffaa;
+  --warn:#ffaa00;--danger:#ff3355;--ok:#00e676;
+  --iot:#a78bfa;--iot-dim:#2d1b69;
+  --twin:#00c8ff;
+  --text:#e8f4ff;--muted:#4a7090;
+  --hl:#00c8ff; /* highlight color — can be changed */
+  --hl-glow: rgba(0,200,255,0.35);
+  --hl-dim: rgba(0,200,255,0.08);
+  --font-d:'Orbitron',monospace;--font-m:'JetBrains Mono',monospace;--font-b:'Barlow',sans-serif;
+}
+
+/* ── HIGHLIGHT THEMES ─────────────────────── */
+body.hl-cyan { --hl:#00c8ff; --hl-glow:rgba(0,200,255,0.35); --hl-dim:rgba(0,200,255,0.08); --twin:#00c8ff; --accent:#00c8ff; }
+body.hl-green { --hl:#00ffaa; --hl-glow:rgba(0,255,170,0.35); --hl-dim:rgba(0,255,170,0.08); --twin:#00ffaa; --accent:#00ffaa; }
+body.hl-magenta { --hl:#ff00cc; --hl-glow:rgba(255,0,204,0.35); --hl-dim:rgba(255,0,204,0.08); --twin:#ff00cc; --accent:#ff00cc; }
+body.hl-gold { --hl:#ffcc00; --hl-glow:rgba(255,204,0,0.35); --hl-dim:rgba(255,204,0,0.08); --twin:#ffcc00; --accent:#ffcc00; }
+body.hl-orange { --hl:#ff6600; --hl-glow:rgba(255,102,0,0.35); --hl-dim:rgba(255,102,0,0.08); --twin:#ff6600; --accent:#ff6600; }
+body.hl-violet { --hl:#aa44ff; --hl-glow:rgba(170,68,255,0.35); --hl-dim:rgba(170,68,255,0.08); --twin:#aa44ff; --accent:#aa44ff; }
+
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:15px;}
+body::before{content:'';position:fixed;inset:0;
+  background:linear-gradient(rgba(0,80,160,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,80,160,0.025) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;z-index:0;}
+
+/* ── COLOR SWITCHER ──────────────────────── */
+.color-switcher{display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(0,0,0,0.4);border:1px solid var(--border2);border-radius:3px;}
+.color-switcher-label{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.1em;margin-right:4px;}
+.hl-swatch{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.2s;position:relative;}
+.hl-swatch:hover{transform:scale(1.2);}
+.hl-swatch.active{border-color:#fff;box-shadow:0 0 8px currentColor;}
+.hl-swatch.s-cyan{background:#00c8ff;}
+.hl-swatch.s-green{background:#00ffaa;}
+.hl-swatch.s-magenta{background:#ff00cc;}
+.hl-swatch.s-gold{background:#ffcc00;}
+.hl-swatch.s-orange{background:#ff6600;}
+.hl-swatch.s-violet{background:#aa44ff;}
+
+/* ── TOPBAR ─────────────────────────────────── */
+#topbar{height:52px;flex-shrink:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(2,6,8,0.97);border-bottom:1px solid var(--border2);}
+.tb-left{display:flex;align-items:center;gap:12px;}
+.hlogo{width:36px;height:36px;background:linear-gradient(135deg,#001a55,#0044aa);border:1.5px solid var(--hl);border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:900;font-size:20px;color:#fff;box-shadow:0 0 16px var(--hl-glow);animation:lp 3s ease-in-out infinite;}
+@keyframes lp{0%,100%{box-shadow:0 0 16px var(--hl-glow)}50%{box-shadow:0 0 28px var(--hl-glow), 0 0 50px var(--hl-dim)}}
+.tb-title{font-family:var(--font-d);font-size:11px;letter-spacing:0.18em;color:var(--hl);}
+.tb-sub{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.14em;margin-top:2px;}
+.tb-nav{display:flex;gap:2px;margin-left:24px;}
+.tnav{padding:6px 14px;background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--font-d);font-size:8px;letter-spacing:0.12em;border-radius:2px;transition:all 0.2s;cursor:pointer;}
+.tnav:hover{color:var(--text);border-color:var(--border2);}
+.tnav.active{background:var(--hl-dim);border-color:var(--hl);color:var(--hl);}
+.tnav.iot-tab.active{background:rgba(167,139,250,0.08);border-color:var(--iot);color:var(--iot);}
+.tb-right{display:flex;align-items:center;gap:10px;}
+
+.ws-badge{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:2px;font-family:var(--font-m);font-size:8px;border:1px solid;transition:all 0.3s;}
+.ws-badge.connecting{border-color:var(--warn);color:var(--warn);background:rgba(255,170,0,0.07);}
+.ws-badge.connected{border-color:var(--ok);color:var(--ok);background:rgba(0,230,118,0.07);}
+.ws-badge.disconnected{border-color:var(--danger);color:var(--danger);background:rgba(255,51,85,0.07);}
+.ws-dot{width:7px;height:7px;border-radius:50%;animation:bp 1.5s ease-in-out infinite;}
+.ws-dot.connecting{background:var(--warn);}
+.ws-dot.connected{background:var(--ok);}
+.ws-dot.disconnected{background:var(--danger);}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.sys-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid var(--border2);border-radius:14px;background:rgba(9,22,42,0.8);}
+.sys-dot{width:7px;height:7px;border-radius:50%;}
+.sys-dot.ok{background:var(--ok);box-shadow:0 0 6px var(--ok);animation:bp 2s ease-in-out infinite;}
+.sys-dot.warn{background:var(--warn);box-shadow:0 0 6px var(--warn);animation:bp 0.9s ease-in-out infinite;}
+.sys-dot.danger{background:var(--danger);box-shadow:0 0 6px var(--danger);animation:bp 0.4s step-end infinite;}
+.sys-lbl{font-family:var(--font-m);font-size:8px;}
+.tb-meta{font-family:var(--font-m);font-size:9px;text-align:right;}
+.tb-meta span{display:block;line-height:1.5;}
+
+/* ── PAGES ─────────────────────────────────── */
+.page{display:none;flex:1;overflow:hidden;position:relative;z-index:1;}
+.page.active{display:flex;}
+
+/* ── MONITOR PAGE ─────────────────────────── */
+#pg-monitor{display:grid;grid-template-columns:220px 1fr 260px;}
+.lp{border-right:1px solid var(--border);background:rgba(6,15,24,0.95);padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;}
+.sec{font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:0.25em;}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:9px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;transition:background 0.4s;}
+.sc.ok::before{background:var(--ok);}
+.sc.warn::before{background:var(--warn);}
+.sc.danger::before{background:var(--danger);}
+.sc-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;}
+.sc-name{font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:0.1em;}
+.sc-badge{font-family:var(--font-m);font-size:10px;padding:1px 5px;border-radius:2px;}
+.sc-badge.ok{background:rgba(0,230,118,0.08);color:var(--ok);border:1px solid rgba(0,230,118,0.2);}
+.sc-badge.warn{background:rgba(255,170,0,0.08);color:var(--warn);border:1px solid rgba(255,170,0,0.2);}
+.sc-badge.danger{background:rgba(255,51,85,0.08);color:var(--danger);border:1px solid rgba(255,51,85,0.3);}
+.sc-val{font-family:var(--font-m);font-size:28px;font-weight:700;line-height:1;}
+.sc-unit{font-size:9px;color:var(--muted);}
+.sc-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px;}
+.sc-fill{height:100%;border-radius:2px;transition:width 0.6s ease,background 0.4s;}
+.sc-foot{display:flex;justify-content:space-between;margin-top:3px;}
+.sc-range{font-family:var(--font-m);font-size:7px;color:var(--muted);}
+.rul-mini{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:9px;}
+.rul-days{font-family:var(--font-d);font-size:30px;font-weight:900;line-height:1;}
+.rul-lbl{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.1em;margin-top:2px;}
+.rul-msg{font-size:10px;color:#6080a0;margin-top:5px;line-height:1.5;}
+.cp{display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 40%,#07182a 0%,#020608 80%);}
+.motor-vp{flex:1;position:relative;overflow:hidden;}
+.motor-svg-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;}
+
+/* ── DIGITAL TWIN SPLIT VIEW ─────────────── */
+.twin-split{display:flex;gap:32px;align-items:center;justify-content:center;width:100%;height:100%;}
+.twin-label{font-family:var(--font-m);font-size:7px;letter-spacing:0.18em;text-align:center;margin-top:6px;}
+.twin-label.real-label{color:#5a8090;}
+.twin-label.dt-label{color:var(--hl);}
+.vs-divider{width:1px;height:200px;background:linear-gradient(to bottom, transparent, var(--hl), transparent);opacity:0.4;flex-shrink:0;}
+.vs-badge{font-family:var(--font-d);font-size:9px;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.2em;}
+
+#motor-svg-real{width:230px;height:220px;}
+#motor-svg-dt{width:260px;height:220px;filter:drop-shadow(0 0 12px var(--hl)) drop-shadow(0 0 24px var(--hl-glow));}
+.dt-particle{animation:dtFloat 3s ease-in-out infinite;}
+@keyframes dtFloat{0%,100%{opacity:0.6;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@keyframes scanLine{0%{transform:translateY(-200px);opacity:0}20%{opacity:0.6}80%{opacity:0.6}100%{transform:translateY(200px);opacity:0}}
+
+.cbar{height:46px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:rgba(2,6,8,0.92);border-top:1px solid var(--border);}
+.cbar-btns{display:flex;gap:5px;}
+.cb{padding:4px 11px;background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:var(--font-m);font-size:8px;letter-spacing:0.08em;border-radius:2px;transition:all 0.2s;cursor:pointer;}
+.cb:hover,.cb.on{border-color:var(--hl);color:var(--hl);background:var(--hl-dim);}
+.cb.ok-c{border-color:var(--ok);color:var(--ok);}
+.met-strip{display:flex;gap:4px;}
+.met{text-align:center;padding:3px 8px;background:var(--card);border:1px solid var(--border);border-radius:2px;min-width:68px;}
+.met-l{font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:0.08em;}
+.met-v{font-family:var(--font-m);font-size:12px;font-weight:700;line-height:1.2;}
+.met-u{font-size:7px;color:var(--muted);}
+.rp{border-left:1px solid var(--border);background:rgba(6,15,24,0.95);padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.rul-wrap{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:10px;text-align:center;}
+.rul-title{font-family:var(--font-d);font-size:8px;letter-spacing:0.14em;color:var(--hl);margin-bottom:6px;}
+.rul-pred{font-size:10px;margin-top:6px;padding:6px;background:rgba(0,0,0,0.3);border-radius:2px;text-align:left;line-height:1.7;}
+.alarm-panel{background:var(--card);border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.ap-head{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.ap-title{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.2em;}
+.ap-badge{font-family:var(--font-m);font-size:9px;padding:1px 7px;border-radius:10px;}
+.ap-badge.zero{background:rgba(0,230,118,0.08);color:var(--ok);border:1px solid rgba(0,230,118,0.2);}
+.ap-badge.has{background:rgba(255,170,0,0.08);color:var(--warn);border:1px solid rgba(255,170,0,0.2);}
+.ap-badge.crit{background:rgba(255,51,85,0.1);color:var(--danger);border:1px solid rgba(255,51,85,0.3);}
+.alarm-list{max-height:130px;overflow-y:auto;}
+.al-item{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;gap:8px;}
+.al-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.al-dot.warn{background:var(--warn);}
+.al-dot.danger{background:var(--danger);}
+.al-msg{font-size:13px;line-height:1.4;flex:1;}
+.al-t{font-family:var(--font-m);font-size:10px;color:var(--muted);}
+.no-alarm{padding:12px;text-align:center;font-family:var(--font-m);font-size:9px;color:var(--ok);}
+.maint-c{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:9px;}
+.maint-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+.maint-row:last-child{border-bottom:none;}
+.maint-task{font-size:10px;}
+.maint-due{font-family:var(--font-m);font-size:8px;padding:2px 6px;border-radius:2px;}
+.mc-ok{background:rgba(0,230,118,0.07);color:var(--ok);}
+.mc-soon{background:rgba(255,170,0,0.07);color:var(--warn);}
+.mc-now{background:rgba(255,51,85,0.08);color:var(--danger);}
+.chart-box{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:7px;}
+.chart-lbl{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.15em;margin-bottom:5px;}
+.sup-widget{background:var(--hl-dim);border:1px solid rgba(0,200,255,0.12);border-radius:3px;padding:8px;}
+.sup-title{font-family:var(--font-m);font-size:7px;color:var(--hl);letter-spacing:0.12em;margin-bottom:5px;}
+.sup-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.sup-lbl{font-size:10px;}
+.sup-val{font-family:var(--font-m);font-size:10px;}
+
+/* ── FAULT LAB ────────────────────────────── */
+#pg-fault{flex-direction:column;overflow-y:auto;padding:14px;gap:12px;}
+.pg-hd{font-family:var(--font-d);font-size:13px;letter-spacing:0.15em;color:var(--hl);}
+.pg-sub{font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:3px;}
+.fault-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.fc{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:13px;transition:border-color 0.2s;}
+.fc:hover{border-color:var(--hl);}
+.fc.active{border-color:var(--warn);background:rgba(255,170,0,0.03);}
+.fc-icon{font-size:24px;margin-bottom:7px;}
+.fc-name{font-family:var(--font-d);font-size:9px;letter-spacing:0.1em;color:var(--hl);margin-bottom:4px;}
+.fc-desc{font-size:10px;color:#6080a0;line-height:1.5;margin-bottom:8px;}
+.fc-params{margin-bottom:9px;}
+.fc-p{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:8px;padding:3px 0;border-bottom:1px solid var(--border);}
+.fc-p:last-child{border-bottom:none;}
+.fp-l{color:var(--muted);}
+.fp-v{color:var(--accent2);}
+.fp-live{color:var(--warn);}
+.btn-inj{width:100%;padding:6px;background:var(--hl-dim);border:1px solid var(--hl);color:var(--hl);font-family:var(--font-m);font-size:8px;letter-spacing:0.1em;border-radius:2px;transition:all 0.2s;cursor:pointer;}
+.btn-inj:hover{background:rgba(0,200,255,0.14);}
+.btn-inj.on{background:rgba(255,170,0,0.1);border-color:var(--warn);color:var(--warn);}
+.fault-status{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:12px;font-family:var(--font-m);font-size:10px;}
+
+/* ── PARAMS PAGE ──────────────────────────── */
+#pg-params{flex-direction:column;overflow-y:auto;padding:14px;gap:12px;}
+.param-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.param-head{padding:9px 13px;border-bottom:1px solid var(--border);font-family:var(--font-d);font-size:8px;letter-spacing:0.12em;color:var(--hl);}
+.param-body{padding:12px 13px;}
+.prow{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.prow:last-child{margin-bottom:0;}
+.plbl{font-size:11px;flex:1;color:var(--text);}
+.pval{font-family:var(--font-m);font-size:10px;color:var(--accent2);width:55px;text-align:right;}
+input[type=range].p-slider{flex:1;height:4px;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range].p-slider::-webkit-slider-thumb{appearance:none;width:10px;height:10px;border-radius:50%;background:var(--hl);cursor:pointer;}
+.thr-inp{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:9px;padding:4px 6px;border-radius:2px;outline:none;width:100%;}
+.thr-inp:focus{border-color:var(--hl);}
+.apply-btn{padding:5px 14px;background:var(--hl-dim);border:1px solid var(--hl);color:var(--hl);font-family:var(--font-m);font-size:8px;border-radius:2px;cursor:pointer;letter-spacing:0.1em;}
+.scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.scen-btn{padding:10px 8px;background:var(--panel);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--font-m);font-size:8px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.scen-btn:hover{border-color:var(--hl);color:var(--hl);}
+.scen-btn.active{border-color:var(--accent2);background:rgba(0,255,170,0.05);color:var(--accent2);}
+
+/* ── IoT COMPARISON PAGE ──────────────────── */
+#pg-iot{flex-direction:column;overflow:hidden;}
+.iot-topbar{height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:rgba(2,6,8,0.97);border-bottom:1px solid var(--border2);}
+.iot-badge{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:2px;font-family:var(--font-m);font-size:8px;}
+.iot-badge.iot-src{background:rgba(167,139,250,0.1);border:1px solid var(--iot);color:var(--iot);}
+.iot-badge.twin-src{background:var(--hl-dim);border:1px solid var(--hl);color:var(--hl);}
+.conn-dot{width:8px;height:8px;border-radius:50%;}
+.conn-dot.live{background:#00e676;box-shadow:0 0 8px #00e676;animation:bp 1s ease-in-out infinite;}
+.conn-dot.connecting{background:var(--warn);animation:bp 0.5s ease-in-out infinite;}
+.conn-dot.dead{background:var(--danger);}
+.drift-indicator{font-family:var(--font-m);font-size:8px;padding:3px 10px;border-radius:2px;}
+.drift-indicator.good{background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.3);color:var(--ok);}
+.drift-indicator.warn{background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.3);color:var(--warn);}
+.drift-indicator.bad{background:rgba(255,51,85,0.08);border:1px solid rgba(255,51,85,0.3);color:var(--danger);}
+.iot-3-col{flex:1;display:grid;grid-template-columns:1fr 270px 1fr;overflow:hidden;}
+.iot-pane{display:flex;flex-direction:column;overflow:hidden;}
+.pane-header{height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--border);}
+.ph-title{font-family:var(--font-d);font-size:9px;letter-spacing:0.14em;}
+.ph-title.iot-color{color:var(--iot);}
+.ph-title.twin-color{color:var(--hl);}
+.ph-status{font-family:var(--font-m);font-size:7px;display:flex;align-items:center;gap:5px;}
+.pane-content{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
+.cmp-sensor-row{display:grid;grid-template-columns:100px 1fr 80px 70px;gap:6px;align-items:center;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:3px;position:relative;}
+.cmp-sensor-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;border-radius:2px 0 0 2px;}
+.cmp-sensor-row.ok::before{background:var(--ok);}
+.cmp-sensor-row.warn::before{background:var(--warn);}
+.cmp-sensor-row.danger::before{background:var(--danger);}
+.cmp-sensor-row.iot-style{border-color:rgba(167,139,250,0.25);}
+.cmp-sensor-row.iot-style::before{background:var(--iot);}
+.cmp-s-name{font-family:var(--font-m);font-size:8px;color:var(--muted);}
+.cmp-s-val{font-family:var(--font-m);font-size:20px;font-weight:700;line-height:1;}
+.cmp-s-unit{font-family:var(--font-m);font-size:8px;color:var(--muted);margin-top:2px;}
+.cmp-s-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px;}
+.cmp-s-bar-fill{height:100%;border-radius:2px;transition:width 0.5s ease;}
+.cmp-s-badge{font-family:var(--font-m);font-size:7px;padding:2px 5px;border-radius:2px;text-align:center;}
+.cmp-s-badge.ok{background:rgba(0,230,118,0.08);color:var(--ok);border:1px solid rgba(0,230,118,0.2);}
+.cmp-s-badge.warn{background:rgba(255,170,0,0.08);color:var(--warn);border:1px solid rgba(255,170,0,0.2);}
+.cmp-s-badge.danger{background:rgba(255,51,85,0.08);color:var(--danger);border:1px solid rgba(255,51,85,0.3);}
+.cmp-s-badge.iot-badge{background:rgba(167,139,250,0.08);color:var(--iot);border:1px solid rgba(167,139,250,0.2);}
+.iot-center-strip{border-left:1px solid var(--border2);border-right:1px solid var(--border2);background:rgba(6,15,24,0.98);display:flex;flex-direction:column;overflow:hidden;}
+.cmp-center{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
+.delta-card{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:9px;}
+.delta-title{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.2em;margin-bottom:8px;}
+.delta-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);}
+.delta-row:last-child{border-bottom:none;}
+.delta-sensor{font-size:9px;color:var(--text);}
+.delta-value{font-family:var(--font-m);font-size:10px;font-weight:700;}
+.delta-value.good{color:var(--ok);}
+.delta-value.mild{color:var(--accent2);}
+.delta-value.warn{color:var(--warn);}
+.delta-value.bad{color:var(--danger);}
+.sync-meter{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:10px;text-align:center;}
+.sync-title{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.2em;margin-bottom:6px;}
+.sync-score{font-family:var(--font-d);font-size:36px;font-weight:900;line-height:1;}
+.sync-lbl{font-family:var(--font-m);font-size:7px;margin-top:3px;}
+.sync-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px;}
+.sync-bar-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.iot-config{background:rgba(45,27,105,0.2);border:1px solid rgba(167,139,250,0.2);border-radius:3px;padding:9px;}
+.iot-config-title{font-family:var(--font-m);font-size:7px;color:var(--iot);letter-spacing:0.15em;margin-bottom:8px;}
+.overlay-chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:7px;}
+.overlay-chart-title{font-family:var(--font-m);font-size:7px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between;}
+.legend-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;}
+.event-log{background:var(--card);border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.el-head{padding:6px 10px;border-bottom:1px solid var(--border);font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.15em;display:flex;justify-content:space-between;align-items:center;}
+.el-body{overflow-y:auto;max-height:160px;}
+.el-item{padding:4px 10px;border-bottom:1px solid var(--border);font-family:var(--font-m);font-size:8px;line-height:1.4;}
+.el-item.ok{color:var(--ok);}
+.el-item.warn{color:var(--warn);}
+.el-item.danger{color:var(--danger);}
+.el-item.info{color:var(--hl);}
+.el-item.iot{color:var(--iot);}
+.iot-scenario-bar{height:40px;flex-shrink:0;display:flex;align-items:center;gap:5px;padding:0 14px;background:rgba(2,6,8,0.95);border-top:1px solid var(--border);}
+.iot-sc-lbl{font-family:var(--font-m);font-size:7px;color:var(--muted);letter-spacing:0.15em;margin-right:3px;}
+.iot-sc-btn{padding:4px 9px;background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:var(--font-m);font-size:7px;border-radius:2px;cursor:pointer;transition:all 0.2s;}
+.iot-sc-btn:hover{border-color:var(--iot);color:var(--iot);}
+.iot-sc-btn.active{background:rgba(167,139,250,0.1);border-color:var(--iot);color:var(--iot);}
+#toasts{position:fixed;bottom:14px;right:14px;z-index:999;display:flex;flex-direction:column;gap:5px;pointer-events:none;}
+.toast{padding:9px 14px;border-radius:3px;font-family:var(--font-m);font-size:9px;max-width:320px;line-height:1.5;animation:ti 0.3s ease;}
+.toast.ok{background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.4);color:var(--ok);}
+.toast.warn{background:rgba(255,170,0,0.12);border:1px solid rgba(255,170,0,0.4);color:var(--warn);}
+.toast.danger{background:rgba(255,51,85,0.14);border:1px solid rgba(255,51,85,0.5);color:var(--danger);}
+.toast.info{background:var(--hl-dim);border:1px solid var(--hl);color:var(--hl);}
+.toast.iot{background:rgba(167,139,250,0.10);border:1px solid rgba(167,139,250,0.35);color:var(--iot);}
+@keyframes ti{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body class="hl-cyan">
+<div id="toasts"></div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="tb-left">
+    <div class="hlogo">H</div>
+    <div>
+      <div class="tb-title">HYUNDAI MOTOR — DIGITAL TWIN · IoT LIVE</div>
+      <div class="tb-sub">REAL-TIME WebSocket · PHYSICS ENGINE · IoT STREAM · DRIFT ANALYSIS</div>
+    </div>
+    <nav class="tb-nav">
+      <button class="tnav active" onclick="showPage('monitor',this)">◉ LIVE MONITOR</button>
+      <button class="tnav" onclick="showPage('fault',this)">⚡ FAULT LAB</button>
+      <button class="tnav" onclick="showPage('params',this)">🎛 PARAMETERS</button>
+      <button class="tnav iot-tab" onclick="showPage('iot',this)">📡 IoT vs TWIN</button>
+    </nav>
+  </div>
+  <div class="tb-right">
+    <!-- HIGHLIGHT COLOR SWITCHER -->
+    <div class="color-switcher">
+      <span class="color-switcher-label">HIGHLIGHT</span>
+      <div class="hl-swatch s-cyan active" title="Cyan" onclick="setHighlight('cyan',this)"></div>
+      <div class="hl-swatch s-green" title="Green" onclick="setHighlight('green',this)"></div>
+      <div class="hl-swatch s-magenta" title="Magenta" onclick="setHighlight('magenta',this)"></div>
+      <div class="hl-swatch s-gold" title="Gold" onclick="setHighlight('gold',this)"></div>
+      <div class="hl-swatch s-orange" title="Orange" onclick="setHighlight('orange',this)"></div>
+      <div class="hl-swatch s-violet" title="Violet" onclick="setHighlight('violet',this)"></div>
+    </div>
+    <div class="ws-badge connecting" id="ws-badge">
+      <div class="ws-dot connecting" id="ws-dot"></div>
+      <span id="ws-label">CONNECTING...</span>
+    </div>
+    <div class="sys-pill">
+      <div class="sys-dot ok" id="sys-dot"></div>
+      <span class="sys-lbl" id="sys-lbl" style="color:var(--ok)">ALL SYSTEMS NORMAL</span>
+    </div>
+    <div class="tb-meta">
+      <span id="tb-clock" style="color:var(--hl);font-size:10px;">00:00:00</span>
+      <span style="color:var(--muted);font-size:8px;" id="tb-tick">TICK #0</span>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 1: LIVE MONITOR -->
+<div class="page active" id="pg-monitor">
+  <div class="lp">
+    <div class="sec">■ SENSOR CHANNELS</div>
+    <div class="sc ok" id="sc-temp">
+      <div class="sc-row"><span class="sc-name">STATOR TEMP</span><span class="sc-badge ok" id="sb-temp">NORMAL</span></div>
+      <div><span class="sc-val" id="sv-temp">82.4</span><span class="sc-unit"> °C</span></div>
+      <div class="sc-bar"><div class="sc-fill" id="sf-temp" style="width:58%;background:var(--ok)"></div></div>
+      <div class="sc-foot"><span class="sc-range">0–140°C</span><span class="sc-range" id="st-temp" style="color:var(--ok)">→ stable</span></div>
+    </div>
+    <div class="sc ok" id="sc-vib">
+      <div class="sc-row"><span class="sc-name">VIBRATION RMS</span><span class="sc-badge ok" id="sb-vib">NORMAL</span></div>
+      <div><span class="sc-val" id="sv-vib">0.82</span><span class="sc-unit"> g</span></div>
+      <div class="sc-bar"><div class="sc-fill" id="sf-vib" style="width:27%;background:var(--ok)"></div></div>
+      <div class="sc-foot"><span class="sc-range">0–3.0g</span><span class="sc-range" id="st-vib" style="color:var(--ok)">→ stable</span></div>
+    </div>
+    <div class="sc ok" id="sc-cur">
+      <div class="sc-row"><span class="sc-name">CURRENT L1</span><span class="sc-badge ok" id="sb-cur">NORMAL</span></div>
+      <div><span class="sc-val" id="sv-cur">180</span><span class="sc-unit"> A</span></div>
+      <div class="sc-bar"><div class="sc-fill" id="sf-cur" style="width:56%;background:var(--ok)"></div></div>
+      <div class="sc-foot"><span class="sc-range">0–320A</span><span class="sc-range" id="st-cur" style="color:var(--ok)">→ stable</span></div>
+    </div>
+    <div class="sc ok" id="sc-rpm">
+      <div class="sc-row"><span class="sc-name">ROTOR SPEED</span><span class="sc-badge ok" id="sb-rpm">NORMAL</span></div>
+      <div><span class="sc-val" id="sv-rpm">1480</span><span class="sc-unit"> RPM</span></div>
+      <div class="sc-bar"><div class="sc-fill" id="sf-rpm" style="width:98%;background:var(--ok)"></div></div>
+      <div class="sc-foot"><span class="sc-range">0–1510</span><span class="sc-range" id="st-rpm" style="color:var(--ok)">→ stable</span></div>
+    </div>
+    <div class="sc ok" id="sc-brg">
+      <div class="sc-row"><span class="sc-name">BEARING TEMP</span><span class="sc-badge ok" id="sb-brg">NORMAL</span></div>
+      <div><span class="sc-val" id="sv-brg">54.1</span><span class="sc-unit"> °C</span></div>
+      <div class="sc-bar"><div class="sc-fill" id="sf-brg" style="width:41%;background:var(--ok)"></div></div>
+      <div class="sc-foot"><span class="sc-range">0–130°C</span><span class="sc-range" id="st-brg" style="color:var(--ok)">→ stable</span></div>
+    </div>
+    <div class="sc ok" id="sc-pf">
+      <div class="sc-row"><span class="sc-name">POWER FACTOR</span><span class="sc-badge ok" id="sb-pf">NORMAL</span></div>
+      <div><span class="sc-val" id="sv-pf">0.88</span></div>
+      <div class="sc-bar"><div class="sc-fill" id="sf-pf" style="width:88%;background:var(--ok)"></div></div>
+      <div class="sc-foot"><span class="sc-range">0–1.0</span><span class="sc-range" id="st-pf" style="color:var(--ok)">→ stable</span></div>
+    </div>
+    <div class="sec">■ ALARM ENGINE</div>
+    <div class="sup-widget">
+      <div class="sup-title">FALSE ALARM SUPPRESSION</div>
+      <div class="sup-row"><span class="sup-lbl">Suppressed</span><span class="sup-val" id="sup-count" style="color:var(--ok)">0</span></div>
+      <div class="sup-row"><span class="sup-lbl">Confirmed</span><span class="sup-val" id="conf-count" style="color:var(--warn)">0</span></div>
+      <div class="sup-row"><span class="sup-lbl">Accuracy</span><span class="sup-val" id="acc-pct" style="color:var(--hl)">100%</span></div>
+    </div>
+    <div class="rul-mini">
+      <div class="sec">■ TWIN RUL</div>
+      <div class="rul-days" id="rul-mini-days" style="color:var(--ok)">47</div>
+      <div class="rul-lbl">DAYS TO MAINTENANCE</div>
+      <div class="rul-msg" id="rul-mini-msg">Normal operations.</div>
+    </div>
+  </div>
+
+  <!-- CENTER: DIGITAL TWIN SPLIT VIEW -->
+  <div class="cp">
+    <div class="motor-vp">
+      <div class="motor-svg-wrap">
+        <div class="twin-split">
+          <!-- REAL MOTOR SVG -->
+          <div>
+            <svg id="motor-svg-real" viewBox="0 0 230 220" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="bG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a8090"/><stop offset="40%" stop-color="#3a6070"/><stop offset="100%" stop-color="#1a3040"/></linearGradient>
+                <radialGradient id="tG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff4400" stop-opacity="0.0" id="tg-inner"/><stop offset="100%" stop-color="#ffaa00" stop-opacity="0.0" id="tg-outer"/></radialGradient>
+                <filter id="glow-real"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <linearGradient id="fG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#608898"/><stop offset="100%" stop-color="#2a4858"/></linearGradient>
+              </defs>
+              <!-- base plate -->
+              <rect x="20" y="170" width="190" height="14" rx="2" fill="#1a3040" stroke="#2a4858" stroke-width="1"/>
+              <rect x="30" y="168" width="18" height="16" rx="2" fill="#243848"/>
+              <rect x="182" y="168" width="18" height="16" rx="2" fill="#243848"/>
+              <!-- shaft left -->
+              <rect x="8" y="108" width="28" height="8" rx="2" fill="#8aacbc" stroke="#4a7088" stroke-width="1"/>
+              <!-- main body -->
+              <rect x="36" y="62" width="158" height="110" rx="5" fill="url(#bG)" stroke="#2a5068" stroke-width="1.5"/>
+              <!-- cooling fins -->
+              <g stroke="url(#fG)" stroke-width="0.8" opacity="0.55">
+                <line x1="50" y1="62" x2="50" y2="172"/><line x1="70" y1="62" x2="70" y2="172"/>
+                <line x1="90" y1="62" x2="90" y2="172"/><line x1="116" y1="62" x2="116" y2="172"/>
+                <line x1="142" y1="62" x2="142" y2="172"/><line x1="164" y1="62" x2="164" y2="172"/>
+                <line x1="180" y1="62" x2="180" y2="172"/>
+              </g>
+              <!-- thermal overlay -->
+              <rect id="therm-ov" x="36" y="62" width="158" height="110" rx="5" fill="url(#tG)" opacity="0" style="pointer-events:none;transition:opacity 1.2s;"/>
+              <!-- left end cap -->
+              <ellipse cx="49" cy="117" rx="19" ry="52" fill="#3a5868" stroke="#2a4858" stroke-width="1.5"/>
+              <ellipse cx="49" cy="117" rx="13" ry="40" fill="#4a6878"/>
+              <ellipse cx="49" cy="117" rx="6" ry="18" fill="#2a3848"/>
+              <!-- right end cap (fan side) -->
+              <ellipse cx="194" cy="117" rx="19" ry="52" fill="#3a5868" stroke="#2a4858" stroke-width="1.5"/>
+              <ellipse cx="194" cy="117" rx="13" ry="40" fill="#4a6878"/>
+              <ellipse cx="194" cy="117" rx="5" ry="18" fill="#1a2838"/>
+              <!-- fan blades -->
+              <g id="fan-blades" stroke="#5a7888" stroke-width="1.2" opacity="0.5">
+                <line x1="194" y1="85" x2="194" y2="149"/><line x1="177" y1="117" x2="211" y2="117"/>
+                <line x1="181" y1="93" x2="207" y2="141"/><line x1="207" y1="93" x2="181" y2="141"/>
+              </g>
+              <!-- shaft right -->
+              <rect x="207" y="112" width="20" height="10" rx="2" fill="#8aacbc" stroke="#4a7088" stroke-width="1"/>
+              <circle cx="222" cy="117" r="4" fill="none" stroke="#3a5868" stroke-width="1"/>
+              <line id="rotor-ind" x1="222" y1="113" x2="222" y2="117" stroke="#00ffaa" stroke-width="1.5"/>
+              <!-- junction box -->
+              <rect x="96" y="36" width="50" height="28" rx="3" fill="#2a4858" stroke="#1a3848" stroke-width="1.2"/>
+              <!-- LEDs -->
+              <circle id="led-r" cx="108" cy="50" r="3.5" fill="#ff3355" opacity="0.9"/>
+              <circle id="led-b" cx="121" cy="50" r="3.5" fill="#3366ff" opacity="0.9"/>
+              <circle id="led-g" cx="134" cy="50" r="3.5" fill="#00cc44" opacity="0.9"/>
+              <!-- nameplate -->
+              <rect x="82" y="140" width="66" height="22" rx="2" fill="#1a2838" stroke="#2a4858" stroke-width="0.8"/>
+              <text x="115" y="150" text-anchor="middle" fill="#5a8090" font-family="JetBrains Mono" font-size="5">HYUNDAI</text>
+              <text x="115" y="158" text-anchor="middle" fill="#4a6878" font-family="JetBrains Mono" font-size="4">160kW · 1480RPM</text>
+              <!-- sensor annotations -->
+              <circle cx="67" cy="85" r="4" fill="#ffaa00" filter="url(#glow-real)"/>
+              <line x1="71" y1="81" x2="90" y2="66" stroke="#ffaa00" stroke-width="0.5" stroke-dasharray="3,2" opacity="0.5"/>
+              <rect x="80" y="56" width="52" height="12" rx="2" fill="rgba(0,0,0,0.75)" stroke="#ffaa00" stroke-width="0.5"/>
+              <text id="st-label" x="106" y="65" text-anchor="middle" fill="#ffaa00" font-family="JetBrains Mono" font-size="6">T: 82.4°C</text>
+              <circle cx="115" cy="155" r="4" fill="#ff3355" filter="url(#glow-real)"/>
+              <line x1="115" y1="159" x2="115" y2="172" stroke="#ff3355" stroke-width="0.5" stroke-dasharray="3,2" opacity="0.5"/>
+              <rect x="87" y="172" width="56" height="12" rx="2" fill="rgba(0,0,0,0.75)" stroke="#ff3355" stroke-width="0.5"/>
+              <text id="sv-label" x="115" y="181" text-anchor="middle" fill="#ff3355" font-family="JetBrains Mono" font-size="6">VIB: 0.82g</text>
+              <circle cx="168" cy="84" r="4" fill="#00ffaa" filter="url(#glow-real)"/>
+              <line x1="172" y1="80" x2="190" y2="62" stroke="#00ffaa" stroke-width="0.5" stroke-dasharray="3,2" opacity="0.5"/>
+              <rect x="170" y="52" width="58" height="12" rx="2" fill="rgba(0,0,0,0.75)" stroke="#00ffaa" stroke-width="0.5"/>
+              <text id="sr-label" x="199" y="61" text-anchor="middle" fill="#00ffaa" font-family="JetBrains Mono" font-size="6">ω: 1480 RPM</text>
+              <circle cx="57" cy="100" r="4" fill="#00c8ff" filter="url(#glow-real)"/>
+              <line x1="53" y1="96" x2="36" y2="76" stroke="#00c8ff" stroke-width="0.5" stroke-dasharray="3,2" opacity="0.5"/>
+              <rect x="4" y="66" width="48" height="12" rx="2" fill="rgba(0,0,0,0.75)" stroke="#00c8ff" stroke-width="0.5"/>
+              <text id="sb-label" x="28" y="75" text-anchor="middle" fill="#00c8ff" font-family="JetBrains Mono" font-size="6">BRG: 54°C</text>
+            </svg>
+            <div class="twin-label real-label">■ PHYSICAL MOTOR</div>
+          </div>
+
+          <!-- VS DIVIDER -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;height:220px;justify-content:center;">
+            <div class="vs-divider"></div>
+          </div>
+
+          <!-- DIGITAL TWIN SVG (holographic wireframe style) -->
+          <div>
+            <svg id="motor-svg-dt" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow-dt">
+                  <feGaussianBlur stdDeviation="2" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+                <filter id="glow-strong">
+                  <feGaussianBlur stdDeviation="4" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <!-- Background grid dots -->
+              <g opacity="0.12" id="dt-grid">
+                <circle cx="20" cy="20" r="1" fill="var(--hl)"/><circle cx="60" cy="20" r="1" fill="var(--hl)"/><circle cx="100" cy="20" r="1" fill="var(--hl)"/><circle cx="140" cy="20" r="1" fill="var(--hl)"/><circle cx="180" cy="20" r="1" fill="var(--hl)"/><circle cx="220" cy="20" r="1" fill="var(--hl)"/>
+                <circle cx="20" cy="60" r="1" fill="var(--hl)"/><circle cx="60" cy="60" r="1" fill="var(--hl)"/><circle cx="100" cy="60" r="1" fill="var(--hl)"/><circle cx="140" cy="60" r="1" fill="var(--hl)"/><circle cx="180" cy="60" r="1" fill="var(--hl)"/><circle cx="220" cy="60" r="1" fill="var(--hl)"/>
+                <circle cx="20" cy="100" r="1" fill="var(--hl)"/><circle cx="60" cy="100" r="1" fill="var(--hl)"/><circle cx="100" cy="100" r="1" fill="var(--hl)"/><circle cx="140" cy="100" r="1" fill="var(--hl)"/><circle cx="180" cy="100" r="1" fill="var(--hl)"/><circle cx="220" cy="100" r="1" fill="var(--hl)"/>
+                <circle cx="20" cy="140" r="1" fill="var(--hl)"/><circle cx="60" cy="140" r="1" fill="var(--hl)"/><circle cx="100" cy="140" r="1" fill="var(--hl)"/><circle cx="140" cy="140" r="1" fill="var(--hl)"/><circle cx="180" cy="140" r="1" fill="var(--hl)"/><circle cx="220" cy="140" r="1" fill="var(--hl)"/>
+                <circle cx="20" cy="180" r="1" fill="var(--hl)"/><circle cx="60" cy="180" r="1" fill="var(--hl)"/><circle cx="100" cy="180" r="1" fill="var(--hl)"/><circle cx="140" cy="180" r="1" fill="var(--hl)"/><circle cx="180" cy="180" r="1" fill="var(--hl)"/><circle cx="220" cy="180" r="1" fill="var(--hl)"/>
+              </g>
+              <!-- scan line animation -->
+              <rect id="dt-scan" x="0" y="0" width="260" height="2" fill="var(--hl)" opacity="0" style="animation:scanLine 4s ease-in-out infinite 1s;"/>
+
+              <!-- base plate wireframe -->
+              <rect x="22" y="170" width="216" height="14" rx="2" fill="none" stroke="var(--hl)" stroke-width="0.8" opacity="0.5"/>
+              <line x1="30" y1="168" x2="30" y2="184" stroke="var(--hl)" stroke-width="0.6" opacity="0.4"/>
+              <line x1="220" y1="168" x2="220" y2="184" stroke="var(--hl)" stroke-width="0.6" opacity="0.4"/>
+              <!-- mounting feet -->
+              <rect x="32" y="168" width="22" height="18" rx="2" fill="none" stroke="var(--hl)" stroke-width="0.7" opacity="0.4"/>
+              <rect x="204" y="168" width="22" height="18" rx="2" fill="none" stroke="var(--hl)" stroke-width="0.7" opacity="0.4"/>
+
+              <!-- shaft left wireframe -->
+              <rect x="6" y="109" width="32" height="9" rx="2" fill="none" stroke="var(--hl)" stroke-width="1" opacity="0.7" filter="url(#glow-dt)"/>
+
+              <!-- main body wireframe -->
+              <rect x="38" y="60" width="184" height="112" rx="5" fill="rgba(0,200,255,0.03)" stroke="var(--hl)" stroke-width="1.5" filter="url(#glow-dt)"/>
+
+              <!-- cooling fins wireframe -->
+              <g stroke="var(--hl)" stroke-width="0.7" opacity="0.35">
+                <line x1="58" y1="60" x2="58" y2="172"/><line x1="80" y1="60" x2="80" y2="172"/>
+                <line x1="102" y1="60" x2="102" y2="172"/><line x1="130" y1="60" x2="130" y2="172"/>
+                <line x1="158" y1="60" x2="158" y2="172"/><line x1="180" y1="60" x2="180" y2="172"/>
+                <line x1="200" y1="60" x2="200" y2="172"/>
+              </g>
+              <!-- horizontal fin lines -->
+              <g stroke="var(--hl)" stroke-width="0.4" opacity="0.2">
+                <line x1="38" y1="80" x2="222" y2="80"/>
+                <line x1="38" y1="100" x2="222" y2="100"/>
+                <line x1="38" y1="120" x2="222" y2="120"/>
+                <line x1="38" y1="140" x2="222" y2="140"/>
+                <line x1="38" y1="155" x2="222" y2="155"/>
+              </g>
+              <!-- corner accent dots -->
+              <circle cx="38" cy="60" r="2.5" fill="var(--hl)" filter="url(#glow-dt)"/>
+              <circle cx="222" cy="60" r="2.5" fill="var(--hl)" filter="url(#glow-dt)"/>
+              <circle cx="38" cy="172" r="2.5" fill="var(--hl)" filter="url(#glow-dt)"/>
+              <circle cx="222" cy="172" r="2.5" fill="var(--hl)" filter="url(#glow-dt)"/>
+
+              <!-- left end cap wireframe (concentric circles) -->
+              <ellipse cx="51" cy="116" rx="22" ry="54" fill="none" stroke="var(--hl)" stroke-width="1.2" opacity="0.7" filter="url(#glow-dt)"/>
+              <ellipse cx="51" cy="116" rx="16" ry="42" fill="none" stroke="var(--hl)" stroke-width="0.7" opacity="0.5"/>
+              <ellipse cx="51" cy="116" rx="10" ry="30" fill="none" stroke="var(--hl)" stroke-width="0.6" opacity="0.4"/>
+              <ellipse cx="51" cy="116" rx="5" ry="16" fill="none" stroke="var(--hl)" stroke-width="0.5" opacity="0.3"/>
+              <circle cx="51" cy="116" r="3" fill="var(--hl)" opacity="0.9" filter="url(#glow-strong)"/>
+
+              <!-- right end cap wireframe (concentric circles — fan) -->
+              <ellipse cx="209" cy="116" rx="22" ry="54" fill="none" stroke="var(--hl)" stroke-width="1.2" opacity="0.7" filter="url(#glow-dt)"/>
+              <ellipse cx="209" cy="116" rx="16" ry="42" fill="none" stroke="var(--hl)" stroke-width="0.7" opacity="0.5"/>
+              <ellipse cx="209" cy="116" rx="10" ry="30" fill="none" stroke="var(--hl)" stroke-width="0.6" opacity="0.4"/>
+              <ellipse cx="209" cy="116" rx="5" ry="16" fill="none" stroke="var(--hl)" stroke-width="0.5" opacity="0.3"/>
+              <!-- fan blades wireframe -->
+              <g id="dt-fan" stroke="var(--hl)" stroke-width="1" opacity="0.6" filter="url(#glow-dt)">
+                <line x1="209" y1="84" x2="209" y2="148"/>
+                <line x1="185" y1="116" x2="233" y2="116"/>
+                <line x1="192" y1="92" x2="226" y2="140"/>
+                <line x1="226" y1="92" x2="192" y2="140"/>
+              </g>
+              <circle cx="209" cy="116" r="3.5" fill="var(--hl)" opacity="0.9" filter="url(#glow-strong)"/>
+
+              <!-- shaft right wireframe -->
+              <rect x="228" y="111" width="24" height="10" rx="2" fill="none" stroke="var(--hl)" stroke-width="1" opacity="0.7" filter="url(#glow-dt)"/>
+              <circle cx="248" cy="116" r="4.5" fill="none" stroke="var(--hl)" stroke-width="0.8" opacity="0.6"/>
+              <!-- rotor indicator -->
+              <line id="dt-rotor-ind" x1="248" y1="111" x2="248" y2="116" stroke="#00ffaa" stroke-width="2" filter="url(#glow-strong)"/>
+
+              <!-- junction box wireframe -->
+              <rect x="105" y="34" width="60" height="30" rx="3" fill="rgba(0,200,255,0.05)" stroke="var(--hl)" stroke-width="0.8" opacity="0.7"/>
+              <line x1="105" y1="48" x2="165" y2="48" stroke="var(--hl)" stroke-width="0.4" opacity="0.3"/>
+              <!-- LED indicators wireframe -->
+              <circle cx="118" cy="48" r="4" fill="none" stroke="#ff3355" stroke-width="1" opacity="0.8" filter="url(#glow-dt)"/>
+              <circle cx="135" cy="48" r="4" fill="none" stroke="var(--hl)" stroke-width="1" opacity="0.8" filter="url(#glow-dt)"/>
+              <circle cx="152" cy="48" r="4" fill="none" stroke="#00ffaa" stroke-width="1" opacity="0.8" filter="url(#glow-dt)"/>
+
+              <!-- data connection lines (sensor hotspots) -->
+              <!-- temp sensor -->
+              <circle cx="72" cy="83" r="5" fill="none" stroke="#ffaa00" stroke-width="1.5" filter="url(#glow-strong)" opacity="0.9"/>
+              <circle cx="72" cy="83" r="2" fill="#ffaa00" opacity="0.8"/>
+              <line x1="77" y1="78" x2="96" y2="60" stroke="#ffaa00" stroke-width="0.7" stroke-dasharray="3,2" opacity="0.6"/>
+              <rect x="84" y="50" width="56" height="12" rx="2" fill="rgba(0,0,0,0.7)" stroke="#ffaa00" stroke-width="0.7"/>
+              <text id="dt-st-label" x="112" y="59" text-anchor="middle" fill="#ffaa00" font-family="JetBrains Mono" font-size="6.5">T: 82.4°C</text>
+              <!-- vib sensor -->
+              <circle cx="130" cy="160" r="5" fill="none" stroke="#ff3355" stroke-width="1.5" filter="url(#glow-strong)" opacity="0.9"/>
+              <circle cx="130" cy="160" r="2" fill="#ff3355" opacity="0.8"/>
+              <line x1="130" y1="165" x2="130" y2="178" stroke="#ff3355" stroke-width="0.7" stroke-dasharray="3,2" opacity="0.6"/>
+              <rect x="100" y="178" width="60" height="12" rx="2" fill="rgba(0,0,0,0.7)" stroke="#ff3355" stroke-width="0.7"/>
+              <text id="dt-sv-label" x="130" y="187" text-anchor="middle" fill="#ff3355" font-family="JetBrains Mono" font-size="6.5">VIB: 0.82g</text>
+              <!-- rpm sensor -->
+              <circle cx="180" cy="82" r="5" fill="none" stroke="#00ffaa" stroke-width="1.5" filter="url(#glow-strong)" opacity="0.9"/>
+              <circle cx="180" cy="82" r="2" fill="#00ffaa" opacity="0.8"/>
+              <line x1="185" y1="78" x2="206" y2="60" stroke="#00ffaa" stroke-width="0.7" stroke-dasharray="3,2" opacity="0.6"/>
+              <rect x="186" y="50" width="62" height="12" rx="2" fill="rgba(0,0,0,0.7)" stroke="#00ffaa" stroke-width="0.7"/>
+              <text id="dt-sr-label" x="217" y="59" text-anchor="middle" fill="#00ffaa" font-family="JetBrains Mono" font-size="6.5">ω: 1480 RPM</text>
+              <!-- bearing sensor -->
+              <circle cx="60" cy="100" r="5" fill="none" stroke="var(--hl)" stroke-width="1.5" filter="url(#glow-strong)" opacity="0.9"/>
+              <circle cx="60" cy="100" r="2" fill="var(--hl)" opacity="0.8"/>
+              <line x1="55" y1="96" x2="38" y2="76" stroke="var(--hl)" stroke-width="0.7" stroke-dasharray="3,2" opacity="0.6"/>
+              <rect x="4" y="66" width="46" height="12" rx="2" fill="rgba(0,0,0,0.7)" stroke="var(--hl)" stroke-width="0.7"/>
+              <text id="dt-sb-label" x="27" y="75" text-anchor="middle" fill="var(--hl)" font-family="JetBrains Mono" font-size="6.5">BRG: 54°C</text>
+
+              <!-- DIGITAL TWIN LABEL -->
+              <rect x="68" y="134" width="126" height="22" rx="2" fill="rgba(0,200,255,0.06)" stroke="var(--hl)" stroke-width="0.7" opacity="0.8"/>
+              <text x="131" y="144" text-anchor="middle" fill="var(--hl)" font-family="JetBrains Mono" font-size="5.5" opacity="0.9">HYUNDAI · DIGITAL TWIN</text>
+              <text x="131" y="152" text-anchor="middle" fill="var(--hl)" font-family="JetBrains Mono" font-size="4.5" opacity="0.6">PHYSICS ENGINE v2.4 · REAL-TIME</text>
+
+              <!-- Pulse rings on center -->
+              <circle id="dt-pulse1" cx="130" cy="116" r="30" fill="none" stroke="var(--hl)" stroke-width="0.5" opacity="0" style="animation:dtPulse 3s ease-out infinite;"/>
+              <circle id="dt-pulse2" cx="130" cy="116" r="50" fill="none" stroke="var(--hl)" stroke-width="0.3" opacity="0" style="animation:dtPulse 3s ease-out infinite 1s;"/>
+              <circle id="dt-pulse3" cx="130" cy="116" r="70" fill="none" stroke="var(--hl)" stroke-width="0.2" opacity="0" style="animation:dtPulse 3s ease-out infinite 2s;"/>
+            </svg>
+            <div class="twin-label dt-label">⬡ DIGITAL TWIN — LIVE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cbar">
+      <div class="cbar-btns">
+        <button class="cb on" id="btn-run" onclick="toggleMotor()">⏸ RUNNING</button>
+        <button class="cb" id="btn-therm" onclick="toggleThermal()">🌡 THERMAL</button>
+        <button class="cb ok-c" onclick="resetAll()">↺ RESET ALL</button>
+      </div>
+      <div class="met-strip">
+        <div class="met"><div class="met-l">TWIN EFF</div><div class="met-v" id="m-eff" style="color:var(--ok)">95.4</div><div class="met-u">%</div></div>
+        <div class="met"><div class="met-l">IoT EFF</div><div class="met-v" id="m-iot-eff" style="color:var(--iot)">—</div><div class="met-u">%</div></div>
+        <div class="met"><div class="met-l">LOAD</div><div class="met-v" id="m-load" style="color:var(--accent2)">74</div><div class="met-u">%</div></div>
+        <div class="met"><div class="met-l">HEALTH</div><div class="met-v" id="m-health" style="color:var(--ok)">96</div><div class="met-u">%</div></div>
+        <div class="met"><div class="met-l">TWIN RUL</div><div class="met-v" id="m-rul" style="color:var(--ok)">47</div><div class="met-u">days</div></div>
+        <div class="met"><div class="met-l">SYNC</div><div class="met-v" id="m-sync" style="color:var(--ok)">—</div><div class="met-u">%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rp">
+    <div class="sec">■ RUL GAUGE</div>
+    <div class="rul-wrap">
+      <div class="rul-title">TWIN — REMAINING USEFUL LIFE</div>
+      <canvas id="rul-c" width="220" height="114"></canvas>
+      <div class="rul-pred" id="rul-pred" style="font-family:var(--font-m);font-size:9px;margin-top:6px;padding:6px;background:rgba(0,0,0,0.3);border-radius:2px;line-height:1.7;">
+        <span style="color:var(--ok)">✓ HEALTHY</span> — Normal operation.<br>
+        <span style="color:var(--hl)">Next service: ~47 days</span>
+      </div>
+    </div>
+    <div class="sec">■ ACTIVE ALARMS</div>
+    <div class="alarm-panel">
+      <div class="ap-head"><span class="ap-title">ALARM MONITOR</span><span class="ap-badge zero" id="alarm-badge">0 ALARMS</span></div>
+      <div class="alarm-list" id="alarm-list"><div class="no-alarm">✓ No alarms</div></div>
+    </div>
+    <div class="sec">■ MAINTENANCE</div>
+    <div class="maint-c">
+      <div class="maint-row"><span class="maint-task">Bearing Lubrication</span><span class="maint-due mc-ok" id="mc-lube">In 47 days</span></div>
+      <div class="maint-row"><span class="maint-task">Vibration Analysis</span><span class="maint-due mc-ok" id="mc-vib-m">In 60 days</span></div>
+      <div class="maint-row"><span class="maint-task">Insulation Test</span><span class="maint-due mc-ok" id="mc-ins">In 90 days</span></div>
+    </div>
+    <div class="sec">■ TRENDS</div>
+    <div class="chart-box"><div class="chart-lbl">STATOR TEMP (60s) — TWIN</div><canvas id="temp-chart" width="230" height="55"></canvas></div>
+    <div class="chart-box"><div class="chart-lbl">VIBRATION (60s) — TWIN</div><canvas id="vib-chart" width="230" height="50"></canvas></div>
+  </div>
+</div>
+
+<!-- PAGE 2: FAULT LAB -->
+<div class="page" id="pg-fault" style="flex-direction:column;overflow-y:auto;padding:14px;gap:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;">
+    <div><div class="pg-hd">FAULT LAB — TWIN + IoT INJECTION</div>
+    <div class="pg-sub">Inject faults independently on the Digital Twin or live IoT stream. Watch sync score diverge.</div></div>
+    <button onclick="resetAll()" style="padding:7px 18px;background:rgba(0,230,118,0.07);border:1px solid var(--ok);color:var(--ok);font-family:var(--font-m);font-size:9px;border-radius:2px;cursor:pointer;">↺ CLEAR ALL</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div>
+      <div style="font-family:var(--font-m);font-size:8px;color:var(--hl);letter-spacing:0.1em;margin-bottom:8px;padding:5px 10px;background:var(--hl-dim);border:1px solid rgba(0,200,255,0.15);border-radius:2px;">⬡ DIGITAL TWIN FAULTS — Physics Engine Only</div>
+      <div class="fault-grid">
+        <div class="fc" id="fc-bearing"><div class="fc-icon">⚙️</div><div class="fc-name">BEARING WEAR</div><div class="fc-desc">Progressive bearing degradation.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">FI</span><span class="fp-live" id="fi-bearing">0.000</span></div></div><button class="btn-inj" id="bi-bearing" onclick="toggleFault('bearing')">INJECT</button></div>
+        <div class="fc" id="fc-overtemp"><div class="fc-icon">🌡️</div><div class="fc-name">OVERTEMP</div><div class="fc-desc">Stator thermal stress fault.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">FI</span><span class="fp-live" id="fi-overtemp">0.000</span></div></div><button class="btn-inj" id="bi-overtemp" onclick="toggleFault('overtemp')">INJECT</button></div>
+        <div class="fc" id="fc-imbalance"><div class="fc-icon">⚡</div><div class="fc-name">IMBALANCE</div><div class="fc-desc">3-phase current asymmetry.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">FI</span><span class="fp-live" id="fi-imbalance">0.000</span></div></div><button class="btn-inj" id="bi-imbalance" onclick="toggleFault('imbalance')">INJECT</button></div>
+        <div class="fc" id="fc-speed"><div class="fc-icon">🔄</div><div class="fc-name">SPEED FAULT</div><div class="fc-desc">Rotor hunting/oscillation.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">FI</span><span class="fp-live" id="fi-speed">0.000</span></div></div><button class="btn-inj" id="bi-speed" onclick="toggleFault('speed')">INJECT</button></div>
+        <div class="fc" id="fc-insulation"><div class="fc-icon">🔌</div><div class="fc-name">INSULATION</div><div class="fc-desc">Winding insulation breakdown.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">FI</span><span class="fp-live" id="fi-insulation">0.000</span></div></div><button class="btn-inj" id="bi-insulation" onclick="toggleFault('insulation')">INJECT</button></div>
+        <div class="fc"><div class="fc-icon">📡</div><div class="fc-name">NOISE SPIKE</div><div class="fc-desc">False alarm suppression test.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Type</span><span class="fp-v" style="color:var(--ok)">FALSE ALARM</span></div></div><button class="btn-inj" onclick="noiseTest()">TEST</button></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-family:var(--font-m);font-size:8px;color:var(--iot);letter-spacing:0.1em;margin-bottom:8px;padding:5px 10px;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:2px;">📡 IoT HARDWARE FAULTS — Server Stream Only</div>
+      <div class="fault-grid">
+        <div class="fc"><div class="fc-icon">⚙️</div><div class="fc-name">IoT BEARING</div><div class="fc-desc">Inject into hardware stream.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Server</span><span class="fp-live" id="iot-fi-bearing">0.000</span></div></div><button class="btn-inj" id="iot-bi-bearing" onclick="iotFaultToggle('bearing')" style="border-color:var(--iot);color:var(--iot);">INJECT IoT</button></div>
+        <div class="fc"><div class="fc-icon">🌡️</div><div class="fc-name">IoT OVERTEMP</div><div class="fc-desc">Hardware thermal fault.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Server</span><span class="fp-live" id="iot-fi-overtemp">0.000</span></div></div><button class="btn-inj" id="iot-bi-overtemp" onclick="iotFaultToggle('overtemp')" style="border-color:var(--iot);color:var(--iot);">INJECT IoT</button></div>
+        <div class="fc"><div class="fc-icon">⚡</div><div class="fc-name">IoT IMBALANCE</div><div class="fc-desc">Hardware phase fault.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Server</span><span class="fp-live" id="iot-fi-imbalance">0.000</span></div></div><button class="btn-inj" id="iot-bi-imbalance" onclick="iotFaultToggle('imbalance')" style="border-color:var(--iot);color:var(--iot);">INJECT IoT</button></div>
+        <div class="fc"><div class="fc-icon">💥</div><div class="fc-name">IoT SPIKE</div><div class="fc-desc">Hardware sensor spike test.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Duration</span><span class="fp-v">2s</span></div></div><button class="btn-inj" onclick="wsSend({type:'inject_spike'})" style="border-color:var(--iot);color:var(--iot);">INJECT SPIKE</button></div>
+        <div class="fc"><div class="fc-icon">🔴</div><div class="fc-name">IoT MULTI</div><div class="fc-desc">All IoT faults combined.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Severity</span><span class="fp-v" style="color:var(--danger)">CRITICAL</span></div></div><button class="btn-inj" onclick="iotMultiFault()" style="border-color:var(--danger);color:var(--danger);">MULTI-FAULT</button></div>
+        <div class="fc"><div class="fc-icon">↺</div><div class="fc-name">RESET IoT</div><div class="fc-desc">Clear all IoT faults.</div><div class="fc-params"><div class="fc-p"><span class="fp-l">Server</span><span class="fp-v" style="color:var(--ok)">CLEAR</span></div></div><button class="btn-inj" onclick="wsSend({type:'reset_iot'})" style="border-color:var(--ok);color:var(--ok);">RESET</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="fault-status" id="fault-status-display"><span style="color:var(--ok)">No faults active — motor running normally.</span></div>
+</div>
+
+<!-- PAGE 3: PARAMETERS -->
+<div class="page" id="pg-params" style="flex-direction:column;overflow-y:auto;padding:14px;gap:12px;">
+  <div style="flex-shrink:0;"><div class="pg-hd">PARAMETER CONTROL</div><div class="pg-sub">Twin parameters + IoT hardware config — both sent to server in real time.</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+    <div class="param-card">
+      <div class="param-head" style="color:var(--accent2)">TWIN OPERATING CONDITIONS</div>
+      <div class="param-body">
+        <div class="prow"><span class="plbl">Load Factor</span><input type="range" class="p-slider" min="10" max="100" value="74" id="sl-load" oninput="updateParam('load',this.value)"><span class="pval" id="pv-load">74%</span></div>
+        <div class="prow"><span class="plbl">Ambient Temp</span><input type="range" class="p-slider" min="15" max="55" value="25" id="sl-ambient" oninput="updateParam('ambient',this.value)"><span class="pval" id="pv-ambient">25°C</span></div>
+        <div class="prow"><span class="plbl">Supply Voltage</span><input type="range" class="p-slider" min="350" max="450" value="400" id="sl-voltage" oninput="updateParam('voltage',this.value)"><span class="pval" id="pv-voltage">400V</span></div>
+        <div class="prow"><span class="plbl">Cooling Eff.</span><input type="range" class="p-slider" min="20" max="100" value="100" id="sl-cooling" oninput="updateParam('cooling',this.value)"><span class="pval" id="pv-cooling">100%</span></div>
+        <div class="prow"><span class="plbl">Noise Level</span><input type="range" class="p-slider" min="0" max="100" value="30" id="sl-noise" oninput="updateParam('noise',this.value)"><span class="pval" id="pv-noise">30%</span></div>
+      </div>
+    </div>
+    <div class="param-card">
+      <div class="param-head" style="color:var(--iot)">IoT HARDWARE CONFIG</div>
+      <div class="param-body">
+        <div class="prow"><span class="plbl">Sensor Noise</span><input type="range" class="p-slider" min="0" max="80" value="15" id="iot-p-noise" oninput="sendIoTConfig('noiseLevel',this.value/100,this.value+'%','iot-pv-noise')"><span class="pval" id="iot-pv-noise" style="color:var(--iot)">15%</span></div>
+        <div class="prow"><span class="plbl">Packet Loss</span><input type="range" class="p-slider" min="0" max="30" value="2" id="iot-p-loss" oninput="sendIoTConfig('packetLossPct',parseFloat(this.value),this.value+'%','iot-pv-loss')"><span class="pval" id="iot-pv-loss" style="color:var(--iot)">2%</span></div>
+        <div class="prow"><span class="plbl">Latency (ms)</span><input type="range" class="p-slider" min="5" max="500" value="12" id="iot-p-latency" oninput="sendIoTConfig('latencyMs',parseInt(this.value),this.value+'ms','iot-pv-latency')"><span class="pval" id="iot-pv-latency" style="color:var(--iot)">12ms</span></div>
+        <div class="prow"><span class="plbl">Temp Bias</span><input type="range" class="p-slider" min="-20" max="20" value="0" id="iot-p-bias" oninput="sendIoTConfig('tempBias',parseFloat(this.value),(this.value>0?'+':'')+this.value+'°C','iot-pv-bias')"><span class="pval" id="iot-pv-bias" style="color:var(--iot)">0°C</span></div>
+      </div>
+    </div>
+    <div class="param-card">
+      <div class="param-head" style="color:var(--hl)">INDUSTRY SCENARIOS</div>
+      <div class="param-body">
+        <div class="scenario-grid">
+          <button class="scen-btn" onclick="loadScenario('normal')">🟢 Normal</button>
+          <button class="scen-btn" onclick="loadScenario('heavy')">🔶 Heavy</button>
+          <button class="scen-btn" onclick="loadScenario('summer')">☀️ Hot</button>
+          <button class="scen-btn" onclick="loadScenario('bearing')">⚙️ Bearing</button>
+          <button class="scen-btn" onclick="loadScenario('insulation')">🔌 Insul.</button>
+          <button class="scen-btn" onclick="loadScenario('critical')">🔴 Critical</button>
+        </div>
+        <div style="margin-top:10px;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:3px;padding:8px;">
+          <div style="font-family:var(--font-m);font-size:7px;color:var(--muted);margin-bottom:4px;">ACTIVE</div>
+          <div style="font-size:11px;color:var(--accent2);" id="scen-name">Normal Operations</div>
+          <div style="font-size:9px;color:#6080a0;margin-top:3px;" id="scen-desc">Baseline conditions.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4: IoT vs TWIN COMPARISON -->
+<div class="page" id="pg-iot" style="flex-direction:column;">
+  <div class="iot-topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="iot-badge twin-src">⬡ DIGITAL TWIN</div>
+      <span style="font-family:var(--font-m);font-size:8px;color:var(--muted);">vs</span>
+      <div class="iot-badge iot-src">📡 IoT SERVER STREAM</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-left:8px;">
+        <div class="conn-dot connecting" id="iot-conn-dot"></div>
+        <span style="font-family:var(--font-m);font-size:8px;" id="iot-conn-label">CONNECTING</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-family:var(--font-m);font-size:8px;color:var(--muted);">Latency: <span id="iot-latency-display" style="color:var(--iot)">—</span></span>
+      <span style="font-family:var(--font-m);font-size:8px;color:var(--muted);">Pkts: <span id="iot-pkt-count" style="color:var(--iot)">0</span> · Lost: <span id="iot-pkt-lost" style="color:var(--warn)">0</span></span>
+      <div class="drift-indicator good" id="drift-indicator">DRIFT: LOW</div>
+    </div>
+  </div>
+  <div class="iot-3-col">
+    <div class="iot-pane" style="border-right:1px solid var(--border2);">
+      <div class="pane-header" style="background:rgba(0,30,60,0.5);">
+        <div class="ph-title twin-color">⬡ DIGITAL TWIN</div>
+        <div class="ph-status"><span style="color:var(--muted)">Physics ·</span><span style="color:var(--hl);margin-left:3px;" id="twin-tick-lbl">TICK #0</span></div>
+      </div>
+      <div class="pane-content" id="twin-pane"></div>
+    </div>
+    <div class="iot-center-strip">
+      <div class="pane-header"><div class="ph-title" style="color:var(--warn)">△ DELTA</div><div class="ph-status" style="color:var(--muted)">Twin vs IoT</div></div>
+      <div class="cmp-center">
+        <div class="sync-meter">
+          <div class="sync-title">SYNCHRONISATION SCORE</div>
+          <div class="sync-score" id="sync-score" style="color:var(--ok)">—</div>
+          <div class="sync-lbl" id="sync-lbl" style="color:var(--muted)">AWAITING IoT...</div>
+          <div class="sync-bar"><div class="sync-bar-fill" id="sync-bar-fill" style="width:0%;background:var(--ok)"></div></div>
+        </div>
+        <div class="delta-card">
+          <div class="delta-title">SENSOR DELTAS (IoT − Twin)</div>
+          <div class="delta-row"><span class="delta-sensor">Stator Temp</span><span class="delta-value good" id="d-temp">—</span></div>
+          <div class="delta-row"><span class="delta-sensor">Vibration</span><span class="delta-value good" id="d-vib">—</span></div>
+          <div class="delta-row"><span class="delta-sensor">Current L1</span><span class="delta-value good" id="d-cur">—</span></div>
+          <div class="delta-row"><span class="delta-sensor">Rotor RPM</span><span class="delta-value good" id="d-rpm">—</span></div>
+          <div class="delta-row"><span class="delta-sensor">Bearing</span><span class="delta-value good" id="d-brg">—</span></div>
+          <div class="delta-row"><span class="delta-sensor">Power Factor</span><span class="delta-value good" id="d-pf">—</span></div>
+        </div>
+        <div class="iot-config">
+          <div class="iot-config-title">📡 LIVE IoT CONFIG</div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:8px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted)">Sensor Noise</span><span style="color:var(--iot);" id="cfg-noise">15%</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:8px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted)">Packet Loss</span><span style="color:var(--iot);" id="cfg-loss">2%</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:8px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted)">Latency</span><span style="color:var(--iot);" id="cfg-latency">12ms</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:8px;padding:3px 0;"><span style="color:var(--muted)">Temp Bias</span><span style="color:var(--iot);" id="cfg-bias">0°C</span></div>
+          <div style="margin-top:6px;display:flex;gap:4px;">
+            <button onclick="wsSend({type:'inject_spike'})" style="flex:1;padding:4px;background:rgba(167,139,250,0.07);border:1px solid var(--iot);color:var(--iot);font-family:var(--font-m);font-size:7px;border-radius:2px;cursor:pointer;">⚡ SPIKE</button>
+            <button onclick="wsSend({type:'reset_iot'})" style="flex:1;padding:4px;background:rgba(0,230,118,0.06);border:1px solid var(--ok);color:var(--ok);font-family:var(--font-m);font-size:7px;border-radius:2px;cursor:pointer;">↺ RESET</button>
+          </div>
+        </div>
+        <div class="overlay-chart-wrap">
+          <div class="overlay-chart-title"><span>TEMP OVERLAY</span><span><span class="legend-dot" style="background:var(--hl)"></span>Twin <span class="legend-dot" style="background:var(--iot);margin-left:3px;"></span>IoT</span></div>
+          <canvas id="overlay-temp-chart" width="230" height="55"></canvas>
+        </div>
+        <div class="overlay-chart-wrap">
+          <div class="overlay-chart-title"><span>VIB OVERLAY</span><span><span class="legend-dot" style="background:var(--hl)"></span>Twin <span class="legend-dot" style="background:var(--iot);margin-left:3px;"></span>IoT</span></div>
+          <canvas id="overlay-vib-chart" width="230" height="55"></canvas>
+        </div>
+        <div class="event-log">
+          <div class="el-head"><span>EVENT LOG</span><button onclick="document.getElementById('comp-log').innerHTML=''" style="background:none;border:none;color:var(--muted);font-family:var(--font-m);font-size:7px;cursor:pointer;">CLR</button></div>
+          <div class="el-body" id="comp-log"></div>
+        </div>
+      </div>
+    </div>
+    <div class="iot-pane" style="border-left:1px solid var(--border2);">
+      <div class="pane-header" style="background:rgba(45,27,105,0.2);">
+        <div class="ph-title iot-color">📡 IoT SERVER STREAM</div>
+        <div class="ph-status"><span style="color:var(--muted)">WebSocket ·</span><span style="color:var(--iot);margin-left:3px;" id="iot-pkt-lbl">PKT #0</span></div>
+      </div>
+      <div class="pane-content" id="iot-pane"></div>
+    </div>
+  </div>
+  <div class="iot-scenario-bar">
+    <span class="iot-sc-lbl">IoT →</span>
+    <button class="iot-sc-btn" onclick="wsSend({type:'reset_iot'})">✓ CLEAR</button>
+    <button class="iot-sc-btn" onclick="iotFaultToggle('bearing')">⚙️ BEARING</button>
+    <button class="iot-sc-btn" onclick="iotFaultToggle('overtemp')">🌡 OVERTEMP</button>
+    <button class="iot-sc-btn" onclick="iotFaultToggle('imbalance')">⚡ IMBALANCE</button>
+    <button class="iot-sc-btn" onclick="iotMultiFault()">🔴 MULTI</button>
+    <button class="iot-sc-btn" onclick="wsSend({type:'inject_spike'})">💥 SPIKE</button>
+    <span style="width:1px;height:20px;background:var(--border);margin:0 6px;"></span>
+    <span class="iot-sc-lbl">TWIN →</span>
+    <button class="iot-sc-btn" style="border-color:var(--hl);color:var(--hl);" onclick="loadScenario('normal')">✓ NORMAL</button>
+    <button class="iot-sc-btn" style="border-color:var(--hl);color:var(--hl);" onclick="loadScenario('bearing')">⚙️ BEARING</button>
+    <button class="iot-sc-btn" style="border-color:var(--hl);color:var(--hl);" onclick="loadScenario('critical')">🔴 MULTI</button>
+  </div>
+</div>
+
+<style>
+@keyframes dtPulse {
+  0% { r: 30; opacity: 0.6; }
+  100% { r: 80; opacity: 0; }
+}
+@keyframes scanLine {
+  0%   { transform: translateY(-5px); opacity: 0; }
+  10%  { opacity: 0.5; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(225px); opacity: 0; }
+}
+</style>
+
+<script>
+'use strict';
+
+// ── HIGHLIGHT COLOR SWITCHER ─────────────────
+function setHighlight(color, el) {
+  document.body.className = 'hl-' + color;
+  document.querySelectorAll('.hl-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  toast('🎨 Highlight: ' + color.toUpperCase(), 'info');
+}
+
+// ── WebSocket ────────────────────────────────
+let ws = null, wsConnected = false, wsReconnectTimer = null;
+const iotFaultState = { bearing: false, overtemp: false, imbalance: false };
+const iotLatestData = {};
+
+function connectWS() {
+  // If opened as a local file (no server), run in standalone/offline mode
+  if (!location.host || location.protocol === 'file:') {
+    updateWsBadge('offline');
+    compLog('[WS] Standalone mode — IoT server not available (open via HTTP server to enable)', 'warn');
+    toast('⚡ Standalone mode — Twin physics running offline', 'info');
+    startSimulatedIoT(); // simulate IoT data locally
+    return;
+  }
+  const url = `ws://${location.host}`;
+  updateWsBadge('connecting');
+  compLog('[WS] Connecting to IoT server...', 'info');
+  try {
+    ws = new WebSocket(url);
+    ws.onopen = () => { wsConnected = true; updateWsBadge('connected'); compLog('[WS] ✓ Connected', 'ok'); toast('✓ IoT server connected', 'ok'); clearTimeout(wsReconnectTimer); };
+    ws.onmessage = (e) => { try { handleServerMsg(JSON.parse(e.data)); } catch(err) {} };
+    ws.onclose = () => { wsConnected = false; updateWsBadge('disconnected'); compLog('[WS] ✗ Lost — reconnecting...', 'warn'); wsReconnectTimer = setTimeout(connectWS, 3000); };
+    ws.onerror = () => { wsConnected = false; updateWsBadge('disconnected'); };
+  } catch(err) {
+    updateWsBadge('offline');
+    compLog('[WS] Cannot connect — running in standalone mode', 'warn');
+    startSimulatedIoT();
+  }
+}
+function wsSend(msg) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  else toast('⚠ IoT server not connected', 'warn');
+}
+function updateWsBadge(state) {
+  const badge = document.getElementById('ws-badge'), dot = document.getElementById('ws-dot'), label = document.getElementById('ws-label');
+  const connDot = document.getElementById('iot-conn-dot'), connLabel = document.getElementById('iot-conn-label');
+  const cls = (state === 'offline') ? 'disconnected' : state;
+  badge.className = 'ws-badge ' + cls; dot.className = 'ws-dot ' + cls;
+  if (state === 'connected') { label.textContent = 'IoT SERVER ● LIVE'; if(connDot) connDot.className='conn-dot live'; if(connLabel){connLabel.textContent='CONNECTED';connLabel.style.color='var(--ok)';} }
+  else if (state === 'connecting') { label.textContent = 'CONNECTING...'; if(connDot) connDot.className='conn-dot connecting'; if(connLabel){connLabel.textContent='CONNECTING';connLabel.style.color='var(--warn)';} }
+  else if (state === 'offline') { label.textContent = 'STANDALONE MODE'; if(connDot) connDot.className='conn-dot dead'; if(connLabel){connLabel.textContent='OFFLINE (LOCAL)';connLabel.style.color='var(--muted)';} }
+  else { label.textContent = 'SERVER OFFLINE'; if(connDot) connDot.className='conn-dot dead'; if(connLabel){connLabel.textContent='DISCONNECTED';connLabel.style.color='var(--danger)';} }
+}
+
+// ── SIMULATED IoT for standalone/offline mode ──
+function startSimulatedIoT() {
+  setInterval(() => {
+    const n = (a) => (Math.random() - 0.5) * 2 * a;
+    const data = {
+      temp: E.temp + n(1.5), vib: Math.max(0, E.vib + n(0.04)),
+      cur: E.cur + n(3), rpm: E.rpm + n(4),
+      brg: E.brg + n(0.8), pf: Math.min(1, Math.max(0.5, E.pf + n(0.005))),
+      eff: E.eff + n(0.3), latencyMs: Math.round(8 + Math.random() * 10),
+      fi: { bearing: E.fi.bearing, overtemp: E.fi.overtemp, imbalance: E.fi.imbalance },
+      packetsSent: iotPacketCount, packetsDropped: 0
+    };
+    processIoTReading(data);
+  }, 600);
+}
+function handleServerMsg(msg) {
+  switch(msg.type) {
+    case 'iot_reading': processIoTReading(msg.data); break;
+    case 'packet_loss': compLog(`[PKT] Dropped — lost: ${msg.dropped}`, 'warn'); const pl=document.getElementById('iot-pkt-lost');if(pl)pl.textContent=msg.dropped; break;
+    case 'fault_ack': iotFaultState[msg.fault]=msg.active; updateIoTFaultButtons(); compLog(`[IoT] Fault ACK: ${msg.fault}=${msg.active}`, msg.active?'warn':'ok'); break;
+    case 'config_ack': compLog(`[IoT] Config: ${msg.key}=${msg.value}`, 'iot'); updateCfgDisplay(msg.key, msg.value); break;
+    case 'spike_ack': compLog('[IoT] ⚡ Spike injected', 'iot'); toast('⚡ IoT spike injected!', 'iot'); break;
+    case 'reset_ack': Object.keys(iotFaultState).forEach(k=>iotFaultState[k]=false); updateIoTFaultButtons(); compLog('[IoT] ↺ Reset','ok'); toast('↺ IoT reset','ok'); break;
+  }
+}
+function updateCfgDisplay(key, value) {
+  const map = { noiseLevel:['cfg-noise',v=>Math.round(v*100)+'%'], packetLossPct:['cfg-loss',v=>v+'%'], latencyMs:['cfg-latency',v=>v+'ms'], tempBias:['cfg-bias',v=>(v>=0?'+':'')+v+'°C'] };
+  if(map[key]){const[id,fmt]=map[key];const el=document.getElementById(id);if(el)el.textContent=fmt(value);}
+}
+
+// ── PHYSICS ENGINE ───────────────────────────
+const E = { t:0,running:true,tickCount:0,faults:{bearing:false,overtemp:false,imbalance:false,speed:false,insulation:false},fi:{bearing:0,overtemp:0,imbalance:0,speed:0,insulation:0},temp:82.4,vib:0.82,cur:180,rpm:1480,brg:54.1,pf:0.88,eff:95.4,pwr:118,load:0.74,health:96,rul:47.0,alarmCounts:{},suppressedCount:0,confirmedCount:0,activeAlarms:[],params:{loadFactor:0.74,ambient:25,voltage:400,cooling:1.0,noise:0.3} };
+let THR={tempW:88,tempC:100,vibW:1.0,vibC:1.6,brgW:70,brgC:90,curW:260,curC:290};
+const prevSensors={};
+const tempHist=Array(60).fill(82.4), vibHist=Array(60).fill(0.82);
+const iotTempHist=Array(60).fill(82.4), iotVibHist=Array(60).fill(0.82);
+let rotorAngle=0, thermalOn=false;
+
+function noise(a){return(Math.random()-0.5)*2*a*E.params.noise;}
+function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+
+function physicsTick(){
+  if(!E.running) return;
+  E.t+=0.8; E.tickCount++;
+  for(const f in E.faults){const target=E.faults[f]?1.0:0.0;E.fi[f]=E.fi[f]+(target-E.fi[f])*0.015;}
+  const lf=E.params.loadFactor;
+  E.load=clamp(lf+Math.sin(E.t*0.02)*0.06*lf+noise(0.01),0.1,1.05);
+  const slip=E.load*0.025+E.fi.speed*(0.08+Math.sin(E.t*0.4)*0.04);
+  const vf=E.params.voltage/400;
+  E.rpm=clamp(E.rpm*0.92+(1500*(1-slip)*vf+noise(2))*0.08+noise(3),1000,1510);
+  const af=(E.params.ambient-25)*0.8,cf=(1-E.params.cooling)*25;
+  const hb=60+E.load*30+E.fi.overtemp*42+E.fi.insulation*15+af+cf;
+  E.temp=clamp(E.temp*0.96+(hb+Math.sin(E.t*0.018)*2+noise(0.3))*0.04,30,160);
+  const bh=38+E.load*18+E.fi.bearing*38+E.fi.overtemp*12+af*0.5+cf*0.3;
+  E.brg=clamp(E.brg*0.94+(bh+noise(0.5))*0.06,20,150);
+  const vb=0.5+E.load*0.35+E.fi.bearing*(0.7+Math.abs(Math.sin(E.t*2.4))*0.4)+E.fi.speed*0.25+E.fi.insulation*0.15;
+  E.vib=clamp(vb+noise(0.04),0,3.0);
+  E.cur=clamp(E.load*245*vf+E.fi.imbalance*55+E.fi.overtemp*22+noise(2),10,320);
+  E.pf=clamp(0.84+E.load*0.07-E.fi.imbalance*0.12-E.fi.insulation*0.08+noise(0.003),0.5,1.0);
+  E.eff=clamp(90+E.load*7-(E.fi.bearing*4+E.fi.overtemp*8+E.fi.imbalance*6+E.fi.insulation*10+E.fi.speed*4)+noise(0.1),50,99);
+  E.pwr=clamp(E.rpm/1500*E.load*160*(1+E.fi.overtemp*0.1),0,200);
+  const deg=E.fi.bearing*18+E.fi.overtemp*22+E.fi.imbalance*14+E.fi.speed*10+E.fi.insulation*25;
+  E.health=clamp(100-deg,5,100);
+  const dr=E.fi.bearing*0.0012+E.fi.overtemp*0.0025+E.fi.imbalance*0.0007+E.fi.speed*0.0007+E.fi.insulation*0.003;
+  E.rul=clamp(E.rul-dr,0,365);
+  runAlarmEngine();
+  renderAll();
+}
+
+function runAlarmEngine(){
+  const checks=[{id:'temp',val:E.temp,warnT:THR.tempW,critT:THR.tempC,label:'Stator Temp',unit:'°C'},{id:'vib',val:E.vib,warnT:THR.vibW,critT:THR.vibC,label:'Vibration',unit:'g'},{id:'brg',val:E.brg,warnT:THR.brgW,critT:THR.brgC,label:'Bearing',unit:'°C'},{id:'cur',val:E.cur,warnT:THR.curW,critT:THR.curC,label:'Current',unit:'A'}];
+  const newAlarms=[];
+  const prevT=E._pt||E.temp,prevV=E._pv||E.vib;
+  E._pt=E.temp;E._pv=E.vib;
+  checks.forEach(c=>{
+    const level=c.val>=c.critT?'danger':c.val>=c.warnT?'warn':null;
+    if(!level){E.alarmCounts[c.id]=0;return;}
+    E.alarmCounts[c.id]=(E.alarmCounts[c.id]||0)+1;
+    const count=E.alarmCounts[c.id];
+    const roc=Math.abs(c.val-(c.id==='temp'?prevT:c.id==='vib'?prevV:c.val));
+    const isSpike=(c.id==='temp'&&roc>8)||(c.id==='vib'&&roc>0.5);
+    if(isSpike&&count<4){E.suppressedCount++;return;}
+    if(count<5)return;
+    const alreadyActive=E.activeAlarms.find(a=>a.id===c.id);
+    if(!alreadyActive)E.confirmedCount++;
+    newAlarms.push({id:c.id,level,label:c.label,val:c.val,unit:c.unit,time:new Date().toLocaleTimeString('en-GB',{hour12:false})});
+  });
+  E.activeAlarms=newAlarms;
+}
+
+// ── IoT DATA ─────────────────────────────────
+let iotPacketCount = 0;
+function processIoTReading(data) {
+  iotPacketCount++;
+  Object.assign(iotLatestData, data);
+  iotTempHist.push(data.temp); if(iotTempHist.length>60)iotTempHist.shift();
+  iotVibHist.push(data.vib); if(iotVibHist.length>60)iotVibHist.shift();
+  if(data.fi){['bearing','overtemp','imbalance'].forEach(f=>{const el=document.getElementById('iot-fi-'+f);if(el)el.textContent=(data.fi[f]||0).toFixed(3);});}
+  const pc=document.getElementById('iot-pkt-count'),pl=document.getElementById('iot-pkt-lbl');
+  if(pc)pc.textContent=iotPacketCount;if(pl)pl.textContent='PKT #'+iotPacketCount;
+  if(data.latencyMs){const ld=document.getElementById('iot-latency-display');if(ld)ld.textContent=data.latencyMs+'ms';}
+  const mie=document.getElementById('m-iot-eff');
+  if(mie&&data.eff){mie.textContent=data.eff.toFixed(1);mie.style.color=data.eff>90?'var(--ok)':data.eff>75?'var(--warn)':'var(--danger)';}
+  updateSyncScore(data);
+  if(document.getElementById('pg-iot').classList.contains('active')){renderTwinPane();renderIoTPaneFromData(data);drawOverlayCharts();}
+}
+
+function updateSyncScore(iotData) {
+  const deltas=[Math.abs(iotData.temp-E.temp)/140,Math.abs(iotData.vib-E.vib)/3.0,Math.abs(iotData.cur-E.cur)/320,Math.abs(iotData.rpm-E.rpm)/1510,Math.abs(iotData.brg-E.brg)/130,Math.abs(iotData.pf-E.pf)/1.0];
+  const avg=deltas.reduce((a,b)=>a+b,0)/deltas.length;
+  const sync=Math.round(Math.max(0,100-avg*500));
+  const syncCol=sync>90?'var(--ok)':sync>75?'var(--accent2)':sync>60?'var(--warn)':'var(--danger)';
+  const syncLbl=sync>90?'EXCELLENT SYNC':sync>75?'GOOD SYNC':sync>60?'DRIFT DETECTED':'HIGH DRIFT';
+  const se=document.getElementById('sync-score'),sl=document.getElementById('sync-lbl'),sb=document.getElementById('sync-bar-fill'),ms=document.getElementById('m-sync'),di=document.getElementById('drift-indicator');
+  if(se){se.textContent=sync+'%';se.style.color=syncCol;}if(sl){sl.textContent=syncLbl;sl.style.color=syncCol;}if(sb){sb.style.width=sync+'%';sb.style.background=syncCol;}if(ms){ms.textContent=sync;ms.style.color=syncCol;}
+  if(di){di.textContent=sync>90?'DRIFT: LOW':sync>75?'DRIFT: MODERATE':sync>60?'DRIFT: HIGH':'⚠ DRIFT: CRITICAL';di.className='drift-indicator '+(sync>90?'good':sync>75?'good':sync>60?'warn':'bad');}
+  const dCol=(abs,t1,t2)=>abs<t1?'good':abs<t2?'mild':abs<t2*2?'warn':'bad';
+  const fmt=(v,d,u)=>(v>=0?'+':'')+v.toFixed(d)+u;
+  const dT=iotData.temp-E.temp,dV=iotData.vib-E.vib,dC=iotData.cur-E.cur,dR=iotData.rpm-E.rpm,dB=iotData.brg-E.brg,dP=iotData.pf-E.pf;
+  const sd=(id,v,c)=>{const el=document.getElementById(id);if(el){el.textContent=v;el.className='delta-value '+c;}};
+  sd('d-temp',fmt(dT,1,'°C'),dCol(Math.abs(dT),1,3));sd('d-vib',fmt(dV,2,'g'),dCol(Math.abs(dV),0.05,0.15));sd('d-cur',fmt(dC,0,'A'),dCol(Math.abs(dC),3,8));sd('d-rpm',fmt(dR,0,'rpm'),dCol(Math.abs(dR),5,15));sd('d-brg',fmt(dB,1,'°C'),dCol(Math.abs(dB),1,3));sd('d-pf',fmt(dP,3,''),dCol(Math.abs(dP),0.005,0.015));
+}
+
+// ── THRESHOLDS / RENDER ──────────────────────
+const THRS={temp:{w:88,c:100,max:140},vib:{w:1.0,c:1.6,max:3.0},cur:{w:260,c:290,max:320},rpm:{w:1440,c:1200,max:1510,inv:true},brg:{w:70,c:90,max:130},pf:{w:0.6,c:0.5,max:1.0,inv:true}};
+const COL={ok:'var(--ok)',warn:'var(--warn)',danger:'var(--danger)'};
+const LAB={ok:'NORMAL',warn:'WARNING',danger:'CRITICAL'};
+function sStatus(val,t){if(t.inv)return val<=t.c?'danger':val<=t.w?'warn':'ok';return val>=t.c?'danger':val>=t.w?'warn':'ok';}
+
+function renderAll(){
+  Object.assign(prevSensors,{temp:E.temp,vib:E.vib,cur:E.cur,rpm:E.rpm,brg:E.brg,pf:E.pf});
+  tempHist.push(E.temp);if(tempHist.length>60)tempHist.shift();
+  vibHist.push(E.vib);if(vibHist.length>60)vibHist.shift();
+  rotorAngle+=(E.rpm/60)*2*Math.PI*0.025;
+  updateSensorCards();updateMetrics();updateRUL();updateAlarmPanel();updateSupression();updateSVG();updateMaintenance();updateTopbar();drawCharts();updateFaultDisplay();
+  const tc=document.getElementById('tb-tick');if(tc)tc.textContent='TICK #'+E.tickCount;
+  const tl=document.getElementById('twin-tick-lbl');if(tl)tl.textContent='TICK #'+E.tickCount;
+}
+
+function updateSensorCards(){
+  const fields=[{id:'temp',val:E.temp,fmt:v=>v.toFixed(1)},{id:'vib',val:E.vib,fmt:v=>v.toFixed(2)},{id:'cur',val:E.cur,fmt:v=>Math.round(v)},{id:'rpm',val:E.rpm,fmt:v=>Math.round(v)},{id:'brg',val:E.brg,fmt:v=>v.toFixed(1)},{id:'pf',val:E.pf,fmt:v=>v.toFixed(2)}];
+  fields.forEach(f=>{
+    const t=THRS[f.id],s=sStatus(f.val,t);
+    const pct=Math.min(100,(f.val/t.max)*100);
+    const prev=prevSensors[f.id]||f.val,diff=f.val-prev;
+    const tr=Math.abs(diff)<0.5?'→ stable':diff>0?`↑ +${Math.abs(diff).toFixed(1)}`:`↓ ${diff.toFixed(1)}`;
+    const card=document.getElementById('sc-'+f.id);if(card)card.className='sc '+s;
+    const sv=document.getElementById('sv-'+f.id);if(sv)sv.textContent=f.fmt(f.val);
+    const sb=document.getElementById('sb-'+f.id);if(sb){sb.textContent=LAB[s];sb.className='sc-badge '+s;}
+    const sf=document.getElementById('sf-'+f.id);if(sf){sf.style.width=pct+'%';sf.style.background=COL[s];}
+    const st=document.getElementById('st-'+f.id);if(st){st.textContent=tr;st.style.color=COL[s];}
+  });
+}
+
+function updateMetrics(){
+  const s=(id,v,c)=>{const el=document.getElementById(id);if(el){el.textContent=v;el.style.color=c;}};
+  s('m-eff',E.eff.toFixed(1),E.eff>90?'var(--ok)':E.eff>75?'var(--warn)':'var(--danger)');
+  s('m-load',Math.round(E.load*100),'var(--accent2)');
+  s('m-health',Math.round(E.health),E.health>80?'var(--ok)':E.health>60?'var(--warn)':'var(--danger)');
+  const rd=Math.round(E.rul),rc=rd<5?'var(--danger)':rd<14?'var(--warn)':'var(--ok)';
+  s('m-rul',rd,rc);
+}
+
+function updateRUL(){
+  const days=Math.max(0,E.rul),dI=Math.round(days);
+  const col=days<5?'var(--danger)':days<14?'var(--warn)':'var(--ok)';
+  const mini=document.getElementById('rul-mini-days');if(mini){mini.textContent=dI;mini.style.color=col;}
+  const msg=days<1?'⛔ SHUTDOWN REQUIRED':days<5?`🔴 CRITICAL — service in ${dI}d`:days<14?`🟡 WARNING — schedule in ${dI}d`:`Healthy — next service ~${dI}d.`;
+  const mm=document.getElementById('rul-mini-msg');if(mm)mm.textContent=msg;
+  const pred=document.getElementById('rul-pred');
+  if(pred)pred.innerHTML=`<span style="color:${col}">${days<5?'⛔ CRITICAL':days<14?'⚠ WARNING':'✓ HEALTHY'}</span> — ${msg}<br><span style="color:var(--hl)">Next service: ~${dI} days</span><br><span style="color:var(--muted)">Confidence: 94%</span>`;
+  drawRULGauge(days,col);
+}
+
+function drawRULGauge(days,col){
+  const c=document.getElementById('rul-c');if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H-16,r=82;
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,0,false);ctx.strokeStyle='#0f2236';ctx.lineWidth=14;ctx.stroke();
+  [[0,0.33,'#ff3355'],[0.33,0.6,'#ffaa00'],[0.6,1.0,'#00e676']].forEach(([f,t,c2])=>{ctx.beginPath();ctx.arc(cx,cy,r,Math.PI+f*Math.PI,Math.PI+t*Math.PI,false);ctx.strokeStyle=c2;ctx.lineWidth=14;ctx.globalAlpha=0.22;ctx.stroke();ctx.globalAlpha=1;});
+  const pct=Math.min(1,days/60);
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,Math.PI+pct*Math.PI,false);ctx.strokeStyle=col;ctx.lineWidth=14;ctx.lineCap='round';ctx.stroke();
+  const ang=Math.PI+pct*Math.PI;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(ang)*(r-5),cy+Math.sin(ang)*(r-5));ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.fillStyle=col;ctx.font='900 26px Orbitron,monospace';ctx.textAlign='center';ctx.fillText(Math.round(days),cx,cy-6);
+  ctx.fillStyle='#3a5870';ctx.font='7px JetBrains Mono,monospace';ctx.fillText('DAYS TO SERVICE',cx,cy+6);
+}
+
+function updateAlarmPanel(){
+  const list=document.getElementById('alarm-list'),badge=document.getElementById('alarm-badge');
+  if(!list||!badge)return;
+  const active=E.activeAlarms||[];
+  if(active.length===0){list.innerHTML='<div class="no-alarm">✓ No alarms — system healthy</div>';badge.textContent='0 ALARMS';badge.className='ap-badge zero';return;}
+  const hasCrit=active.some(a=>a.level==='danger');
+  badge.textContent=active.length+(active.length===1?' ALARM':' ALARMS');
+  badge.className='ap-badge '+(hasCrit?'crit':'has');
+  list.innerHTML=active.map(a=>`<div class="al-item"><div class="al-dot ${a.level}"></div><div class="al-msg"><strong>${a.label}</strong> — <span style="color:${a.level==='danger'?'var(--danger)':'var(--warn)'}">${a.val.toFixed(1)} ${a.unit}</span></div><div class="al-t">${a.time}</div></div>`).join('');
+}
+
+function updateSupression(){
+  const sup=E.suppressedCount,con=E.confirmedCount;
+  const acc=(sup+con)>0?Math.round((con/(sup+con))*100):100;
+  const s=id=>document.getElementById(id);
+  if(s('sup-count'))s('sup-count').textContent=sup;if(s('conf-count'))s('conf-count').textContent=con;if(s('acc-pct'))s('acc-pct').textContent=acc+'%';
+}
+
+function updateMaintenance(){
+  const fi=E.fi;
+  [{id:'mc-lube',base:47,fault:'bearing',mult:6},{id:'mc-vib-m',base:60,fault:'bearing',mult:5},{id:'mc-ins',base:90,fault:'insulation',mult:8}].forEach(e=>{
+    const fv=e.fault?(fi[e.fault]||0):0;
+    const days=Math.max(1,Math.round(e.base-fv*e.mult*e.base/10));
+    const el=document.getElementById(e.id);if(!el)return;
+    el.textContent=days<=1?'TOMORROW':`In ${days} days`;
+    el.className='maint-due '+(days<=5?'mc-now':days<=14?'mc-soon':'mc-ok');
+  });
+}
+
+function updateSVG(){
+  const q=id=>document.getElementById(id);
+  // Real motor labels
+  if(q('st-label'))q('st-label').textContent=`T: ${E.temp.toFixed(1)}°C`;
+  if(q('sv-label'))q('sv-label').textContent=`VIB: ${E.vib.toFixed(2)}g`;
+  if(q('sr-label'))q('sr-label').textContent=`ω: ${Math.round(E.rpm)} RPM`;
+  if(q('sb-label'))q('sb-label').textContent=`BRG: ${E.brg.toFixed(0)}°C`;
+  // Digital twin labels
+  if(q('dt-st-label'))q('dt-st-label').textContent=`T: ${E.temp.toFixed(1)}°C`;
+  if(q('dt-sv-label'))q('dt-sv-label').textContent=`VIB: ${E.vib.toFixed(2)}g`;
+  if(q('dt-sr-label'))q('dt-sr-label').textContent=`ω: ${Math.round(E.rpm)} RPM`;
+  if(q('dt-sb-label'))q('dt-sb-label').textContent=`BRG: ${E.brg.toFixed(0)}°C`;
+  // Rotor indicators
+  const ri=q('rotor-ind');
+  if(ri){ri.setAttribute('x2',222+Math.sin(rotorAngle)*5);ri.setAttribute('y2',117-Math.cos(rotorAngle)*5);}
+  const dtri=q('dt-rotor-ind');
+  if(dtri){dtri.setAttribute('x2',248+Math.sin(rotorAngle)*5);dtri.setAttribute('y2',116-Math.cos(rotorAngle)*5);}
+  // Fan rotation
+  const fan=q('fan-blades');if(fan)fan.setAttribute('transform',`rotate(${(rotorAngle*180/Math.PI)%360},194,117)`);
+  const dtFan=q('dt-fan');if(dtFan)dtFan.setAttribute('transform',`rotate(${(rotorAngle*180/Math.PI)%360},209,116)`);
+  // LEDs
+  const t=Date.now()/1000;
+  if(q('led-r'))q('led-r').setAttribute('opacity',Math.sin(t*3.14)>0?'1':'0.2');
+  if(q('led-b'))q('led-b').setAttribute('opacity',Math.sin(t*3.14+2.1)>0?'1':'0.2');
+  if(q('led-g'))q('led-g').setAttribute('opacity',Math.sin(t*3.14+4.2)>0?'1':'0.2');
+  // Thermal overlay
+  if(thermalOn){
+    const op=Math.min(0.55,(E.temp-60)/100);
+    const ov=q('therm-ov');if(ov)ov.setAttribute('opacity',op.toFixed(2));
+    const i=q('tg-inner'),o=q('tg-outer');
+    if(i)i.setAttribute('stop-opacity',(op*0.8).toFixed(2));
+    if(o)o.setAttribute('stop-opacity',(op*0.5).toFixed(2));
+  }
+  // Vibration shake on both motors
+  const svg1=document.getElementById('motor-svg-real'),svg2=document.getElementById('motor-svg-dt');
+  if(E.running){
+    const sh=E.vib*0.7;
+    if(svg1)svg1.style.transform=`translate(${(Math.sin(t*11)*sh).toFixed(1)}px,${(Math.sin(t*15)*sh*0.3).toFixed(1)}px)`;
+    if(svg2)svg2.style.transform=`translate(${(Math.sin(t*11+0.5)*sh).toFixed(1)}px,${(Math.sin(t*15+0.5)*sh*0.3).toFixed(1)}px)`;
+  }
+}
+
+function updateTopbar(){
+  const dot=document.getElementById('sys-dot'),lbl=document.getElementById('sys-lbl');
+  const active=E.activeAlarms||[],hasCrit=active.some(a=>a.level==='danger');
+  if(!E.running){dot.className='sys-dot';dot.style.background='var(--muted)';lbl.textContent='MOTOR STOPPED';lbl.style.color='var(--muted)';}
+  else if(hasCrit){dot.className='sys-dot danger';lbl.textContent='CRITICAL FAULT';lbl.style.color='var(--danger)';}
+  else if(active.length>0){dot.className='sys-dot warn';lbl.textContent='WARNING ACTIVE';lbl.style.color='var(--warn)';}
+  else{dot.className='sys-dot ok';lbl.textContent='ALL SYSTEMS NORMAL';lbl.style.color='var(--ok)';}
+}
+
+function drawCharts(){
+  const drawOne=(cId,hist,mn,mx,color,warn)=>{
+    const c=document.getElementById(cId);if(!c)return;
+    const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(0,0,W,H);
+    const wy=H-((warn-mn)/(mx-mn))*H;
+    ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(0,wy);ctx.lineTo(W,wy);ctx.strokeStyle=color+'66';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
+    if(hist.length<2)return;
+    const step=W/(hist.length-1);
+    ctx.beginPath();
+    hist.forEach((v,i)=>{const x=i*step,y=H-((v-mn)/(mx-mn))*H;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+  };
+  drawOne('temp-chart',tempHist,50,130,'#ffaa00',THR.tempW);
+  drawOne('vib-chart',vibHist,0,2.5,'#ff3355',THR.vibW);
+}
+
+function updateFaultDisplay(){
+  for(const f in E.fi){const el=document.getElementById('fi-'+f);if(el)el.textContent=E.fi[f].toFixed(3);}
+  const fd=document.getElementById('fault-status-display');
+  if(fd){
+    const active=Object.entries(E.faults).filter(([,v])=>v).map(([k])=>k);
+    const iotActive=Object.entries(iotFaultState).filter(([,v])=>v).map(([k])=>'IoT:'+k);
+    const all=[...active,...iotActive];
+    const lbl={bearing:'Bearing',overtemp:'Overtemp',imbalance:'Imbalance',speed:'Speed',insulation:'Insulation'};
+    fd.innerHTML=all.length===0?'<span style="color:var(--ok)">No faults active — motor running normally.</span>':all.map(f=>f.startsWith('IoT:')?`<span style="color:var(--iot)">📡 ${lbl[f.replace('IoT:','')]} ACTIVE on IoT stream</span>`:`<span style="color:var(--warn)">⬡ ${lbl[f]} ACTIVE on Twin engine</span>`).join('<br>');
+  }
+}
+
+// IoT Comparison pane
+function makeSensorRow(name,val,fmt,max,unit,status,isIoT){
+  const pct=Math.min(100,(val/max)*100);
+  const colMap={ok:'var(--ok)',warn:'var(--warn)',danger:'var(--danger)'};
+  const col=colMap[status]||(isIoT?'var(--iot)':'var(--hl)');
+  const badgeLbl={ok:'NORMAL',warn:'WARNING',danger:'CRITICAL'};
+  return `<div class="cmp-sensor-row ${isIoT?'iot-style':status}"><div><div class="cmp-s-name">${name}</div><div class="cmp-s-badge ${isIoT?'iot-badge':status}" style="margin-top:3px;">${isIoT?'IoT LIVE':badgeLbl[status]}</div></div><div><div class="cmp-s-val" style="color:${col}">${fmt(val)}</div><div class="cmp-s-unit">${unit}</div></div><div><div class="cmp-s-bar"><div class="cmp-s-bar-fill" style="width:${pct}%;background:${col}"></div></div><div style="font-family:var(--font-m);font-size:7px;color:var(--muted);margin-top:2px;">${pct.toFixed(0)}%</div></div><div style="font-family:var(--font-m);font-size:9px;text-align:right;color:${col}">${fmt(val)}<br><span style="font-size:7px;color:var(--muted);">${unit}</span></div></div>`;
+}
+
+function renderTwinPane(){
+  const p=document.getElementById('twin-pane');if(!p)return;
+  const sensors=[{name:'STATOR TEMP',val:E.temp,fmt:v=>v.toFixed(1),max:140,unit:'°C',t:THRS.temp},{name:'VIBRATION',val:E.vib,fmt:v=>v.toFixed(2),max:3.0,unit:'g',t:THRS.vib},{name:'CURRENT L1',val:E.cur,fmt:v=>Math.round(v),max:320,unit:'A',t:THRS.cur},{name:'ROTOR SPEED',val:E.rpm,fmt:v=>Math.round(v),max:1510,unit:'RPM',t:THRS.rpm},{name:'BEARING',val:E.brg,fmt:v=>v.toFixed(1),max:130,unit:'°C',t:THRS.brg},{name:'PF',val:E.pf,fmt:v=>v.toFixed(3),max:1.0,unit:'',t:THRS.pf}];
+  let html='<div style="font-family:var(--font-m);font-size:7px;color:var(--hl);letter-spacing:0.1em;margin-bottom:4px;">■ PHYSICS ENGINE OUTPUT</div>';
+  sensors.forEach(s=>html+=makeSensorRow(s.name,s.val,s.fmt,s.max,s.unit,sStatus(s.val,s.t),false));
+  html+=`<div style="background:rgba(0,30,60,0.5);border:1px solid rgba(0,200,255,0.15);border-radius:3px;padding:8px;margin-top:4px;"><div style="font-family:var(--font-m);font-size:7px;color:var(--hl);margin-bottom:5px;">TWIN DERIVED</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;"><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">EFF</div><div style="font-family:var(--font-d);font-size:18px;color:var(--ok)">${E.eff.toFixed(1)}</div></div><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">HEALTH</div><div style="font-family:var(--font-d);font-size:18px;color:${E.health>80?'var(--ok)':E.health>60?'var(--warn)':'var(--danger)'}">${Math.round(E.health)}</div></div><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">RUL (days)</div><div style="font-family:var(--font-d);font-size:18px;color:${E.rul<5?'var(--danger)':E.rul<14?'var(--warn)':'var(--ok)'}">${Math.round(E.rul)}</div></div><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">POWER</div><div style="font-family:var(--font-d);font-size:18px;color:var(--hl)">${Math.round(E.pwr)}</div></div></div></div>`;
+  p.innerHTML=html;
+}
+
+function renderIoTPaneFromData(d){
+  const p=document.getElementById('iot-pane');if(!p)return;
+  if(!d||!d.temp){p.innerHTML='<div style="font-family:var(--font-m);font-size:9px;color:var(--muted);padding:20px;text-align:center;">Awaiting IoT stream...</div>';return;}
+  const sensors=[{name:'STATOR TEMP',val:d.temp,fmt:v=>v.toFixed(1),max:140,unit:'°C'},{name:'VIBRATION',val:d.vib,fmt:v=>v.toFixed(2),max:3.0,unit:'g'},{name:'CURRENT L1',val:d.cur,fmt:v=>Math.round(v),max:320,unit:'A'},{name:'ROTOR SPEED',val:d.rpm,fmt:v=>Math.round(v),max:1510,unit:'RPM'},{name:'BEARING',val:d.brg,fmt:v=>v.toFixed(1),max:130,unit:'°C'},{name:'PF',val:d.pf,fmt:v=>v.toFixed(3),max:1.0,unit:''}];
+  const lossRate=d.packetsSent>0?(d.packetsDropped/(d.packetsSent+d.packetsDropped)*100).toFixed(1):0;
+  let html='<div style="font-family:var(--font-m);font-size:7px;color:var(--iot);letter-spacing:0.1em;margin-bottom:4px;">■ IoT HARDWARE STREAM</div>';
+  sensors.forEach(s=>html+=makeSensorRow(s.name,s.val,s.fmt,s.max,s.unit,'ok',true));
+  html+=`<div style="background:rgba(45,27,105,0.25);border:1px solid rgba(167,139,250,0.2);border-radius:3px;padding:8px;margin-top:4px;"><div style="font-family:var(--font-m);font-size:7px;color:var(--iot);margin-bottom:5px;">IoT TELEMETRY</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;"><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">PKTS RECV</div><div style="font-family:var(--font-d);font-size:16px;color:var(--iot)">${iotPacketCount}</div></div><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">PKT LOSS</div><div style="font-family:var(--font-d);font-size:16px;color:${parseFloat(lossRate)>5?'var(--warn)':'var(--ok)'};">${lossRate}%</div></div><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">LATENCY</div><div style="font-family:var(--font-d);font-size:16px;color:var(--iot)">${d.latencyMs}ms</div></div><div style="background:rgba(0,0,0,0.2);border-radius:2px;padding:6px;text-align:center;"><div style="font-family:var(--font-m);font-size:7px;color:var(--muted)">IoT EFF</div><div style="font-family:var(--font-d);font-size:16px;color:${d.eff>90?'var(--ok)':'var(--warn)'};">${d.eff?d.eff.toFixed(1):'—'}</div></div></div></div>`;
+  p.innerHTML=html;
+}
+
+function drawOverlayCharts(){
+  const draw=(cId,h1,h2,mn,mx,c1,c2,warnV)=>{
+    const c=document.getElementById(cId);if(!c)return;
+    const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(0,0,W,H);
+    const wy=H-((warnV-mn)/(mx-mn))*H;
+    ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(0,wy);ctx.lineTo(W,wy);ctx.strokeStyle='rgba(255,170,0,0.4)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
+    const step=W/(h1.length-1);
+    ctx.beginPath();h1.forEach((v,i)=>{const x=i*step,y=H-((v-mn)/(mx-mn))*H;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle=c1;ctx.lineWidth=2;ctx.globalAlpha=0.9;ctx.stroke();
+    if(h2.length>1){ctx.beginPath();h2.forEach((v,i)=>{const x=i*step,y=H-((v-mn)/(mx-mn))*H;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.strokeStyle=c2;ctx.lineWidth=1.5;ctx.globalAlpha=0.8;ctx.stroke();}
+    ctx.globalAlpha=1;
+  };
+  draw('overlay-temp-chart',tempHist,iotTempHist,50,130,'var(--hl)','var(--iot)',THR.tempW);
+  draw('overlay-vib-chart',vibHist,iotVibHist,0,2.5,'var(--hl)','var(--iot)',THR.vibW);
+}
+
+// ── ACTIONS ──────────────────────────────────
+function toggleMotor(){
+  E.running=!E.running;
+  const btn=document.getElementById('btn-run');
+  btn.textContent=E.running?'⏸ RUNNING':'▶ STOPPED';
+  btn.className=E.running?'cb on':'cb ok-c';
+  toast(E.running?'▶ Motor started':'⏸ Motor stopped',E.running?'ok':'info');
+}
+function toggleThermal(){
+  thermalOn=!thermalOn;
+  document.getElementById('btn-therm').classList.toggle('on',thermalOn);
+  if(!thermalOn){const ov=document.getElementById('therm-ov');if(ov)ov.setAttribute('opacity','0');}
+}
+function toggleFault(f){
+  E.faults[f]=!E.faults[f];
+  const btn=document.getElementById('bi-'+f),card=document.getElementById('fc-'+f);
+  const lbl={bearing:'BEARING',overtemp:'OVERTEMP',imbalance:'IMBALANCE',speed:'SPEED',insulation:'INSULATION'};
+  if(btn){btn.textContent=E.faults[f]?`✓ ${lbl[f]} ACTIVE`:'INJECT';btn.className=E.faults[f]?'btn-inj on':'btn-inj';}
+  if(card)card.className=E.faults[f]?'fc active':'fc';
+  toast(E.faults[f]?`⚡ Twin: ${lbl[f]} injected`:`✓ Twin: ${lbl[f]} cleared`,E.faults[f]?'warn':'ok');
+}
+function noiseTest(){
+  const ot=E.temp,ov=E.vib;E.temp+=18;E.vib+=0.8;
+  toast('📡 Noise spike — watching suppression...','info');
+  setTimeout(()=>{E.temp=ot;E.vib=ov;E.suppressedCount++;toast('✓ Spike suppressed','ok');},2000);
+}
+function iotFaultToggle(f){
+  iotFaultState[f]=!iotFaultState[f];
+  wsSend({type:'set_fault',fault:f,active:iotFaultState[f]});
+  toast(iotFaultState[f]?`📡 IoT ${f} → server`:`📡 IoT ${f} cleared`,iotFaultState[f]?'iot':'ok');
+}
+function iotMultiFault(){
+  ['bearing','overtemp','imbalance'].forEach(f=>{iotFaultState[f]=true;wsSend({type:'set_fault',fault:f,active:true});});
+  toast('🔴 IoT multi-fault injected!','warn');
+}
+function updateIoTFaultButtons(){
+  ['bearing','overtemp','imbalance'].forEach(f=>{
+    const btn=document.getElementById('iot-bi-'+f);
+    if(btn){btn.textContent=iotFaultState[f]?`✓ ${f.toUpperCase()} ACTIVE`:'INJECT IoT';btn.style.borderColor=iotFaultState[f]?'var(--warn)':'var(--iot)';btn.style.color=iotFaultState[f]?'var(--warn)':'var(--iot)';}
+  });
+}
+function sendIoTConfig(key,value,display,displayId){
+  wsSend({type:'set_config',key,value});
+  const el=document.getElementById(displayId);if(el)el.textContent=display;
+}
+function resetAll(){
+  Object.keys(E.faults).forEach(f=>E.faults[f]=false);
+  Object.keys(iotFaultState).forEach(f=>iotFaultState[f]=false);
+  E.rul=47;E.health=96;E.temp=82;E.vib=0.82;E.cur=180;E.rpm=1480;E.brg=54;
+  E.activeAlarms=[];E.suppressedCount=0;E.confirmedCount=0;
+  Object.keys(E.alarmCounts).forEach(k=>E.alarmCounts[k]=0);
+  E.params={loadFactor:0.74,ambient:25,voltage:400,cooling:1.0,noise:0.3};
+  ['bearing','overtemp','imbalance','speed','insulation'].forEach(f=>{E.fi[f]=0;});
+  ['sl-load','sl-ambient','sl-voltage','sl-cooling','sl-noise'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=[74,25,400,100,30][i];});
+  ['pv-load','pv-ambient','pv-voltage','pv-cooling','pv-noise'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=['74%','25°C','400V','100%','30%'][i];});
+  ['bearing','overtemp','imbalance','speed','insulation'].forEach(f=>{
+    const btn=document.getElementById('bi-'+f),card=document.getElementById('fc-'+f);
+    if(btn){btn.textContent='INJECT';btn.className='btn-inj';}if(card)card.className='fc';
+  });
+  wsSend({type:'reset_iot'});
+  document.getElementById('scen-name').textContent='Normal Operations';
+  document.getElementById('scen-desc').textContent='Baseline conditions.';
+  document.querySelectorAll('.scen-btn').forEach(b=>b.classList.remove('active'));
+  toast('↺ All systems reset','ok');
+}
+function updateParam(param,value){
+  const v=parseFloat(value);
+  const pv=document.getElementById('pv-'+param);
+  if(param==='load'){E.params.loadFactor=v/100;if(pv)pv.textContent=v+'%';wsSend({type:'set_load',value:v});}
+  else if(param==='ambient'){E.params.ambient=v;if(pv)pv.textContent=v+'°C';}
+  else if(param==='voltage'){E.params.voltage=v;if(pv)pv.textContent=v+'V';}
+  else if(param==='cooling'){E.params.cooling=v/100;if(pv)pv.textContent=v+'%';}
+  else if(param==='noise'){E.params.noise=v/100;if(pv)pv.textContent=v+'%';}
+}
+const SCENARIOS={normal:{name:'Normal Operations',desc:'Baseline. All healthy.',load:74,ambient:25,voltage:400,cooling:100,noise:30,faults:[]},heavy:{name:'Heavy Load',desc:'High load — watch temp rise.',load:95,ambient:30,voltage:400,cooling:100,noise:40,faults:[]},summer:{name:'Hot Ambient',desc:'High ambient + reduced cooling.',load:80,ambient:48,voltage:400,cooling:40,noise:30,faults:[]},bearing:{name:'Bearing Failure',desc:'Bearing fault — vib + bearing temp rise.',load:74,ambient:25,voltage:400,cooling:100,noise:30,faults:['bearing']},insulation:{name:'Insulation Degradation',desc:'Highest RUL degradation.',load:74,ambient:35,voltage:400,cooling:80,noise:30,faults:['insulation']},critical:{name:'Multi-Fault Critical',desc:'Bearing + overtemp + insulation.',load:90,ambient:45,voltage:395,cooling:50,noise:50,faults:['bearing','overtemp','insulation']}};
+function loadScenario(key){
+  const sc=SCENARIOS[key];if(!sc)return;
+  Object.keys(E.faults).forEach(f=>E.faults[f]=false);Object.keys(E.fi).forEach(f=>E.fi[f]=0);
+  sc.faults.forEach(f=>{E.faults[f]=true;});
+  updateParam('load',sc.load);updateParam('ambient',sc.ambient);updateParam('voltage',sc.voltage);updateParam('cooling',sc.cooling);updateParam('noise',sc.noise);
+  ['sl-load','sl-ambient','sl-voltage','sl-cooling','sl-noise'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=[sc.load,sc.ambient,sc.voltage,sc.cooling,sc.noise][i];});
+  ['bearing','overtemp','imbalance','speed','insulation'].forEach(f=>{
+    const lbl={bearing:'BEARING',overtemp:'OVERTEMP',imbalance:'IMBALANCE',speed:'SPEED',insulation:'INSULATION'};
+    const btn=document.getElementById('bi-'+f),card=document.getElementById('fc-'+f);
+    if(btn){btn.textContent=E.faults[f]?`✓ ${lbl[f]} ACTIVE`:'INJECT';btn.className=E.faults[f]?'btn-inj on':'btn-inj';}
+    if(card)card.className=E.faults[f]?'fc active':'fc';
+  });
+  document.getElementById('scen-name').textContent=sc.name;
+  document.getElementById('scen-desc').textContent=sc.desc;
+  document.querySelectorAll('.scen-btn').forEach(b=>b.classList.remove('active'));
+  toast(`🎭 Scenario: ${sc.name}`,'info');
+}
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tnav').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='iot'){renderTwinPane();renderIoTPaneFromData(iotLatestData);}
+}
+function compLog(msg,type){
+  const el=document.getElementById('comp-log');if(!el)return;
+  const item=document.createElement('div');item.className='el-item '+(type||'info');
+  item.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false})+' '+msg;
+  el.insertBefore(item,el.firstChild);
+  while(el.children.length>50)el.removeChild(el.lastChild);
+}
+const toastSeen=new Set();
+function toast(msg,type='info'){
+  if(toastSeen.has(msg))return;toastSeen.add(msg);
+  const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity 0.5s';setTimeout(()=>{el.remove();toastSeen.delete(msg);},500);},4000);
+}
+
+setInterval(()=>{const n=new Date();const el=document.getElementById('tb-clock');if(el)el.textContent=n.toLocaleTimeString('en-GB',{hour12:false});},1000);
+setInterval(()=>{if(E.running)updateSVG();},80);
+setInterval(physicsTick,500);
+
+connectWS();
+renderAll();
+toast('▶ Physics engine started — connecting to IoT server...','info');
+</script>
+</body>
+</html>

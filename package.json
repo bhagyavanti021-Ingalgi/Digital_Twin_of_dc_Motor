@@ -1,0 +1,12 @@
+{
+  "name": "hyundai-digital-twin",
+  "version": "1.0.0",
+  "description": "Hyundai Motor Digital Twin with IoT Live Stream",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.0.0"
+  }
+}
